@@ -1,41 +1,49 @@
 # 📅 Project Development Timeline: Smart Contactless Dining Platform (SCDP)
 
 > **Project Start Date**: July 20, 2026  
-> **Target Release Date**: August 15, 2026  
-> **Development Approach**: Agile Microservices Development & Iterative Sprints  
+> **Target Release Date**: August 26, 2026  
+> **Development Approach**: Agile Microservices Development & 5-Week Sprint Roadmap  
 
 ---
 
-## 📊 Visual Gantt Chart
+## 📊 Visual Gantt Chart (5-Week Schedule)
 
 ```mermaid
 gantt
-    title SCDP Development Schedule (July 20 - August 15, 2026)
+    title SCDP 5-Week Development Roadmap (July 20 - August 26, 2026)
     dateFormat  YYYY-MM-DD
     axisFormat  %b %d
 
-    section Phase 1: Foundation & Security
-    Architecture & Spec Finalization     :done, arch, 2026-07-20, 2026-07-21
-    Docker, Compose & Nginx Setup        :active, devops1, 2026-07-21, 2026-07-23
-    PostgreSQL & MongoDB Database Setup  :db1, 2026-07-22, 2026-07-24
-    Spring Boot Auth Service & Security  :auth, 2026-07-23, 2026-07-26
-    Auth API Postman Testing             :test1, 2026-07-26, 2026-07-27
+    section Week 1: Foundation & Auth
+    Architecture & Specs Finalization    :done, arch, 2026-07-20, 2026-07-21
+    Docker Compose & Nginx Setup         :active, devops, 2026-07-21, 2026-07-23
+    PostgreSQL & SQL Entity Creation     :db, 2026-07-22, 2026-07-24
+    Spring Boot Auth Service (JWT)       :auth, 2026-07-23, 2026-07-26
+    Auth Endpoints Postman Testing       :test1, 2026-07-26, 2026-07-27
 
-    section Phase 2: Core Services & UI
-    React Frontend Shell & Router Setup  :ui1, 2026-07-28, 2026-07-30
-    QR Code Table Session Flow           :qr, 2026-07-30, 2026-08-01
-    Node/Express Menu Service & Redis    :menu, 2026-07-31, 2026-08-03
-    Node/Express Order Service           :order, 2026-08-02, 2026-08-05
-    Core API Verification                :test2, 2026-08-04, 2026-08-05
+    section Week 2: Base UI & Menu Services
+    React UI Shell (User & Admin)        :ui1, 2026-07-28, 2026-07-31
+    Admin QR Table Registration Feature  :qr, 2026-07-30, 2026-08-01
+    Client Table Login API Mapping       :client_api, 2026-08-01, 2026-08-03
+    Menu Service CRUD Implementation     :menu_svc, 2026-08-02, 2026-08-04
+    Menu API Postman Testing             :test2, 2026-08-04, 2026-08-05
 
-    section Phase 3: Kitchen KDS & Admin
-    Admin Dashboard UI (Menu/Table)      :admin, 2026-08-06, 2026-08-08
-    Kitchen KDS & WebSockets Sync        :kds, 2026-08-08, 2026-08-11
-    Payment Service Integration          :pay, 2026-08-10, 2026-08-12
+    section Week 3: Admin Menu Management UI
+    Admin Menu Item Add UI Design        :admin_design1, 2026-08-06, 2026-08-08
+    Admin Menu Layout UI Design          :admin_design2, 2026-08-08, 2026-08-10
+    UI to API Endpoints Mapping          :admin_map, 2026-08-10, 2026-08-11
+    Menu Subsystem Testing               :test3, 2026-08-11, 2026-08-12
 
-    section Phase 4: QA & Deployment
-    End-to-End System Testing            :e2e, 2026-08-12, 2026-08-14
-    Docker Production Build & Demo       :deploy, 2026-08-14, 2026-08-15
+    section Week 4: Client Ordering System
+    Client Menu Retrieval & Cart UI      :cart_ui, 2026-08-13, 2026-08-15
+    Order Service Backend & Placement    :order_svc, 2026-08-15, 2026-08-17
+    Client Ordering UI & API Integration :order_map, 2026-08-17, 2026-08-18
+    Order Flow Postman & E2E Testing     :test4, 2026-08-18, 2026-08-19
+
+    section Week 5: KDS & WebSockets Sync
+    Kitchen Display System (KDS) UI      :kds_ui, 2026-08-20, 2026-08-22
+    WebSocket Real-time Synchronization  :ws_sync, 2026-08-22, 2026-08-24
+    Final E2E Testing & System Release   :release, 2026-08-24, 2026-08-26
 ```
 
 ---
@@ -44,96 +52,100 @@ gantt
 
 ```mermaid
 timeline
-    title Key Sprint Milestones
+    title 5-Week Sprint Milestones
     section Week 1 : Infrastructure & Security
-        20/7 - 22/7 : Architecture Specifications & Docker Compose Base
-        23/7 - 25/7 : Database Schemas (PostgreSQL & MongoDB) & Spring Boot Auth
-        26/7 - 27/7 : JWT Authentication & Postman API Verification
-    section Week 2 : Core Services & Customer UI
-        28/7 - 30/7 : React App Shell & QR Table Session Login UI
-        31/7 - 02/8 : Express Menu Service + MongoDB + Redis Cache
-        03/8 - 05/8 : Order Service CRUD & Cart Checkout Logic
-    section Week 3 : KDS, Admin & WebSockets
-        06/8 - 08/8 : Admin Dashboard UI (Menu Customization & Table Management)
-        09/8 - 11/8 : Kitchen Display System (KDS) & Real-Time WebSockets
-        12/8 - 13/8 : Razorpay Payment Service & Digital PDF Invoicing
-    section Week 4 : Verification & Deployment
-        14/8 - 15/8 : System Integration Testing & Final Production Docker Build
+        20/7 - 22/7 : Architecture & Docker Compose Setup
+        23/7 - 25/7 : PostgreSQL Schemas & Spring Boot Auth
+        26/7 - 27/7 : JWT RBAC & Postman Endpoint Testing
+    section Week 2 : Base UI & Menu Service
+        28/7 - 31/7 : React Web UI (User & Admin Shell)
+        01/8 - 03/8 : QR Table Registration & Client Table Login API
+        04/8 - 05/8 : Express Menu CRUD & Postman Verification
+    section Week 3 : Admin Menu UI & Integration
+        06/8 - 08/8 : Admin UI Page for Menu Item Adding
+        09/8 - 10/8 : Admin UI Page for Menu Designing
+        11/8 - 12/8 : API UI Mapping & Menu Management System Testing
+    section Week 4 : Client Ordering Subsystem
+        13/8 - 15/8 : Client Menu Retrieval & Cart UI
+        16/8 - 18/8 : Order Placement API & Client Service Mapping
+        19/8 - 19/8 : Order Checkout & Postman E2E Testing
+    section Week 5 : KDS & WebSockets Integration
+        20/8 - 22/8 : Kitchen Display System (KDS) Admin/Kitchen Pane
+        23/8 - 24/8 : Real-Time WebSockets Order Sync & Notification Svc
+        25/8 - 26/8 : Final System Testing & Deployment Build
 ```
 
 ---
 
-## 🗓️ Detailed Sprint Task Breakdown
+## 🗓️ Detailed 5-Week Sprint Breakdown
 
-### 🔹 Week 1 [20/7 - 27/7] — Infrastructure, Security & Containerization
+### 🔹 Week 1 [20/7 - 27/7] — Initialization & Starter Services
 
-> **Goal**: Establish containerized microservices environment, database schemas, and Spring Boot JWT security.
+> **Goal**: Create architecture, Docker container setup with Nginx, PostgreSQL schema, and Spring Security Auth endpoints.
 
-- `[DIR]` **Project Architecture & Specs**: Finalize `project.spec.md`, `project.architect.md`, and repository layout.
-- `[DEVOPS]` **Microservices Setup & Docker**: Configure `docker-compose.yml`, Dockerfiles for all services, and Nginx reverse proxy routes.
-- `[DATABASE]` **Database Initialization**: Create PostgreSQL database schemas for Users, Tables, Orders, Payments; configure MongoDB for Menu catalog.
-- `[SERVER]` **Spring Boot Auth Service**: Implement Spring Security, JWT issuing/verification, password encryption (BCrypt), and user RBAC roles (`ADMIN`, `CHEF`, `WAITER`, `CASHIER`).
-- `[SERVER]` **Auth API Endpoints**: Expose `/api/v1/auth/login`, `/api/v1/auth/register`, and `/api/v1/auth/validate-token`.
-- `[TEST]` **Postman Validation**: Execute integration tests for Auth endpoints and store Postman environment collections.
-
-#### Week 1 Key Deliverables:
-- [x] Docker Compose environment running PostgreSQL, MongoDB, Redis, and Nginx.
-- [x] Functional Spring Boot Auth Service issuing secure JWTs.
-- [x] Verified Postman API test collection.
+- `[DIR]` **Project Architecture Creation**: Finalize project specification and microservices architecture.
+- `[SERVER]` **All Service Containerization**: Set up Dockerfiles and `docker-compose.yml` including Nginx Gateway proxy.
+- `[DATABASE]` **PostgreSQL Database Creation**: Define SQL schemas and relational entities (Users, Tables, Orders, Payments).
+- `[SERVER]` **Spring Security Implementation**: Implement Auth Service in Spring Boot 3.x with JWT issuance and RBAC roles.
+- `[SERVER]` **Auth Service Endpoints**: Create endpoints for login, register, and token validation.
+- `[TEST]` **Postman Endpoint Testing**: Test and verify Auth Service endpoints in Postman.
 
 ---
 
-### 🔹 Week 2 [28/7 - 05/8] — Customer Web App & Core CRUD Services
+### 🔹 Week 2 [28/7 - 05/8] — Base Web UI & Menu Service CRUD
 
-> **Goal**: Build React customer ordering UI, Table QR session login, Menu catalog service, and Order lifecycle service.
+> **Goal**: Build base React application shell for User & Admin, Table QR registration flow, and Express Menu Service CRUD.
 
-- `[UI]` **React Application Shell**: Initialize React 18 (Vite, Tailwind CSS, Redux Toolkit) with responsive customer mobile layout.
-- `[UI]` **Table QR Session Authentication**: Implement QR scanner integration and URL token validation (`/table/:tableId?token=...`).
-- `[SERVER]` **Menu Service (Node/Express + Mongo + Redis)**: Implement CRUD endpoints for menu categories, food items, variants, and add-on modifiers. Integrate Redis menu caching.
-- `[SERVER]` **Order Service (Node/Express + Postgres)**: Implement order creation, tax/bill calculation, and order state storage (`DRAFT` ➔ `SUBMITTED`).
-- `[UI/SERVER]` **Customer App API Integration**: Connect React frontend cart and menu views with Express backend services.
-- `[TEST]` **Core API Testing**: Validate Menu and Order APIs using Postman.
-
-#### Week 2 Key Deliverables:
-- [x] Customer mobile web app browsing menu, customizing items, and submitting orders.
-- [x] High-performance cached Menu Service backed by MongoDB & Redis.
-- [x] Relational Order Service persisting transactional orders in PostgreSQL.
+- `[UI]` **Creating UI for Web App**: Setup base React 18 frontend architecture (User & Admin portals).
+- `[UI]` **QR-Based Table Registering Feature**: Build Admin UI feature to register and generate QR codes for tables.
+- `[UI/SERVER]` **Mapping API for Client Side**: Implement client-side table login flow using scanned QR code parameters.
+- `[SERVER]` **Menu Service CRUD Implementation**: Build Node.js / Express service for Registering, Modifying, and Deleting Menu items and categories.
+- `[SERVER]` **Creating Menu Endpoints**: Expose REST endpoints (`/api/v1/menu/items`, `/api/v1/menu/categories`).
+- `[TEST]` **Testing Endpoints on POSTMAN**: Verify Menu Service endpoints and catalog persistence.
 
 ---
 
-### 🔹 Week 3 [06/8 - 13/8] — Admin Portal, Kitchen KDS & WebSockets
+### 🔹 Week 3 [06/8 - 12/8] — Admin Menu UI & Integration Testing
 
-> **Goal**: Build Admin management UI, Kitchen KDS board with real-time WebSockets, and Payment integration.
+> **Goal**: Design Admin Menu management interfaces, map React UI to backend endpoints, and test the menu subsystem.
 
-- `[DESIGN/UI]` **Admin Dashboard UI**: Build Admin pages for Menu CRUD, item availability toggles, category organization, and Table QR generation.
-- `[UI/SERVER]` **Kitchen Display System (KDS)**: Build Kitchen KDS queue interface with color-coded order cards and cooking status updates (`PREPARING` ➔ `READY`).
-- `[SERVER]` **Real-Time WebSockets (Notification Service)**: Implement Socket.io / WebSocket server with Redis Pub/Sub to sync kitchen card movements with customer live order tracking.
-- `[SERVER]` **Payment Service Integration**: Integrate Razorpay SDK for UPI/Card checkout and automated PDF invoice generation.
-- `[UI/SERVER]` **Waiter Alert System**: Connect "Call Waiter" button on customer app to push notifications for assigned staff.
-- `[TEST]` **Real-Time WebSockets Testing**: Verify multi-client synchronization between Customer UI, Kitchen KDS, and Admin Portal.
-
-#### Week 3 Key Deliverables:
-- [x] Functional Admin Dashboard for menu management and QR generation.
-- [x] Live Kitchen Display System (KDS) updated instantaneously via WebSockets.
-- [x] Integrated Razorpay checkout and digital invoice generation.
+- `[DESIGN]` **UI Page for Menu Item Adding**: Design and implement Admin form UI for adding new menu items, pricing, and variants.
+- `[DESIGN]` **UI Page for Menu Designing**: Design Admin layout page for organizing menu categories, item availability toggles, and layout customization.
+- `[UI/SERVER]` **Mapping UI with API Endpoints**: Connect React Admin UI components to Node/Express Menu Service REST endpoints.
+- `[TESTING]` **Testing the Whole Subsystem**: Comprehensive testing of Admin menu management and client menu rendering.
 
 ---
 
-### 🔹 Week 4 [14/8 - 15/8] — Integration Testing & Production Release
+### 🔹 Week 4 [13/8 - 19/8] — Client Ordering Subsystem & Checkout
 
-> **Goal**: Perform end-to-end load testing, security audits, container optimization, and final deployment.
+> **Goal**: Build client-side menu retrieval, shopping cart, order submission, and Order Service backend integration.
 
-- `[TESTING]` **End-to-End Integration Testing**: Simulate complete customer journey: Scan QR ➔ Browse Menu ➔ Add Customizations ➔ Place Order ➔ KDS Kitchen Accept ➔ Cook ➔ Serve ➔ Digital Pay.
-- `[DEVOPS]` **Production Docker Build**: Optimize Docker images (multi-stage builds) and Nginx caching headers.
-- `[DOCS]` **Final Documentation**: Update README, architecture notes, and user manual.
+- `[UI]` **Client Menu Retrieval UI**: Build Customer mobile UI to fetch and render menu categories, food items, and item details.
+- `[UI]` **Shopping Cart & Checkout UI**: Create interactive shopping cart, item customization modal (variants, add-ons), and order summary view.
+- `[SERVER]` **Order Service Development**: Implement Node.js / Express Order Service for order creation, tax/discount calculation, and state storage in PostgreSQL.
+- `[UI/SERVER]` **Client Order API Mapping**: Connect React Customer cart UI with Order Service endpoints (`POST /api/v1/orders`).
+- `[TESTING]` **Order Subsystem Testing**: Perform Postman and integration testing for client order placement and retrieval.
 
 ---
 
-## 📈 Phase Status & Progress Summary
+### 🔹 Week 5 [20/8 - 26/8] — Kitchen KDS & Real-Time WebSockets Integration
 
-| Phase | Duration | Status | Primary Focus |
+> **Goal**: Build Kitchen Display System (KDS), implement real-time WebSockets synchronization, and run full end-to-end testing.
+
+- `[UI]` **Kitchen Display System (KDS) UI**: Build Admin/Kitchen pane for displaying active orders with color-coded status cards.
+- `[SERVER]` **Real-Time WebSockets Implementation**: Set up Notification Service with WebSockets (Socket.io / WS) and Redis Pub/Sub for instant order broadcasts.
+- `[UI/SERVER]` **Live Status Synchronization**: Connect Kitchen KDS status updates (`PREPARING` ➔ `READY` ➔ `SERVED`) to Customer live order tracking screen.
+- `[TESTING]` **Full System E2E Testing**: Complete end-to-end verification of entire flow: Table QR Scan ➔ Login ➔ Browse Menu ➔ Place Order ➔ KDS Notification ➔ Chef Update ➔ Customer Status Tracking.
+- `[DEVOPS]` **Final Build & Release**: Prepare production Docker deployment build.
+
+---
+
+## 📈 5-Week Progress Tracker
+
+| Week | Target Window | Status | Core Objective |
 | :--- | :--- | :--- | :--- |
-| **Phase 1** | 20/7 - 27/7 | 🟡 In Progress | Architecture, Docker Compose, Postgres/Mongo DBs, Spring Auth Svc |
-| **Phase 2** | 28/7 - 05/8 | ⚪ Pending | React UI Shell, Table QR Session, Express Menu Svc & Order Svc |
-| **Phase 3** | 06/8 - 13/8 | ⚪ Pending | Admin Management UI, Kitchen KDS, WebSockets, Payments |
-| **Phase 4** | 14/8 - 15/8 | ⚪ Pending | E2E System Testing, Docker Production Build & Release |
+| **Week 1** | 20/7 - 27/7 | 🟡 In Progress | Docker, Nginx, PostgreSQL, Spring Boot Auth & JWT Endpoints |
+| **Week 2** | 28/7 - 05/8 | ⚪ Pending | Base React UI (User & Admin), Table QR Registering, Express Menu CRUD |
+| **Week 3** | 06/8 - 12/8 | ⚪ Pending | Admin Menu Adding/Designing UI, API Mapping, Menu Subsystem Testing |
+| **Week 4** | 13/8 - 19/8 | ⚪ Pending | Client Menu Retrieval, Cart UI, Order Service Backend & Order Placement |
+| **Week 5** | 20/8 - 26/8 | ⚪ Pending | Kitchen KDS, WebSockets Real-Time Sync, Final E2E System Testing |
