@@ -144,7 +144,7 @@ timeline
 
 | Week | Target Window | Status | Core Objective |
 | :--- | :--- | :--- | :--- |
-| **Week 1** | 20/7 - 27/7 | 🟡 In Progress | Docker, Nginx, PostgreSQL, Spring Boot Auth & JWT Endpoints |
+| **Week 1** | 20/7 - 27/7 |  Done | Docker, Nginx, PostgreSQL, Spring Boot Auth & JWT Endpoints |
 | **Week 2** | 28/7 - 05/8 | ⚪ Pending | Base React UI (User & Admin), Table QR Registering, Express Menu CRUD |
 | **Week 3** | 06/8 - 12/8 | ⚪ Pending | Admin Menu Adding/Designing UI, API Mapping, Menu Subsystem Testing |
 | **Week 4** | 13/8 - 19/8 | ⚪ Pending | Client Menu Retrieval, Cart UI, Order Service Backend & Order Placement |
