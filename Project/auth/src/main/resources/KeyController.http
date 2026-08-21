@@ -1,0 +1,2 @@
+### jwks
+GET http://localhost:8081/auth/wellknown/jwks.json
