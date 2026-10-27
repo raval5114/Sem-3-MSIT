@@ -1,16 +1,14 @@
 package com.restaurent.business.auth.controllers;
 
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-
 import java.util.Map;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+
 @RestController
-@RequestMapping("/auth")
 public class KeyController {
 
     private final RSAKey rsaPublicKey;

@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   scdp-network:
     driver: bridge
@@ -8,6 +6,7 @@ volumes:
   postgres_data:
   mongo_data:
   redis_data:
+  pgadmin_data:
 
 services:
   # ----------------------------------------------------
@@ -25,6 +24,22 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - scdp-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: scdp-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@dineflow.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres-db
     networks:
       - scdp-network
 
@@ -52,6 +67,7 @@ services:
 
   # ----------------------------------------------------
   # Microservices
+  
   # ----------------------------------------------------
   auth-service:
     build:
@@ -133,6 +149,25 @@ services:
       - scdp-network
 
   # ----------------------------------------------------
+  # Frontend PWA
+  # ----------------------------------------------------
+  app-pwa:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      args:
+        # Tells the PWA to call /api/auth which the app's own nginx proxies to auth-service
+        VITE_AUTH_BASE_URL: /api/auth
+    container_name: scdp-app-pwa
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - auth-service
+    networks:
+      - scdp-network
+
+  # ----------------------------------------------------
   # API Gateway / Reverse Proxy
   # ----------------------------------------------------
   nginx-gateway:
@@ -149,5 +184,6 @@ services:
       - order-service
       - notification-service
       - payment-service
+      - app-pwa
     networks:
       - scdp-network

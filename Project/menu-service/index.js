@@ -1,8 +1,12 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
 
+require('dotenv').config();
+const connectDb = require("./config/db.config");
+const pool = require('./config/pg.db.config');
+const { connectRedis } = require('./config/redis.config');
 const app = express();
+
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
@@ -25,6 +29,21 @@ app.get('/', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`[Menu Service] Running on port ${PORT}`);
-});
+async function start() {
+  try {
+    // Connect to MongoDB before accepting requests.
+    await connectDb();
+    // Connect to PostGre SQL 
+    await pool.query("SELECT 1")
+    // Connect Redis Connect
+    await connectRedis()
+    app.listen(PORT, () => {
+      console.log(`[Menu Service] Running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('[Menu Service] Startup failed:', error);
+    process.exit(1);
+  }
+}
+
+start();

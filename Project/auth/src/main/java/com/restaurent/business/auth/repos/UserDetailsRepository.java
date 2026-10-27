@@ -1,13 +1,17 @@
 package com.restaurent.business.auth.repos;
 
-import com.restaurent.business.auth.entities.UserInfo;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.restaurent.business.auth.entities.UserInfo;
 
 @Repository
-public interface UserDetailsRepository extends JpaRepository<UserInfo, Integer> {
+public interface UserDetailsRepository extends JpaRepository<UserInfo, UUID> {
+
     Optional<UserInfo> findByemail(String email);
-    Optional<UserInfo> findByName(String name); // Just in case, as secondary
+
+    Optional<UserInfo> findByName(String name);
 }

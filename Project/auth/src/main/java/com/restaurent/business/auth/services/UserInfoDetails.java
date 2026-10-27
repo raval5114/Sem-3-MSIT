@@ -1,40 +1,46 @@
 package com.restaurent.business.auth.services;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.restaurent.business.auth.entities.UserInfo;
+import com.restaurent.business.auth.entities.Privilege;
 
 public class UserInfoDetails implements UserDetails {
 
-    private final String name;
     private final String email;
     private final String password;
     private final List<GrantedAuthority> authorities;
+    private final UserInfo userInfo;
 
     public UserInfoDetails(UserInfo userInfo) {
-        this.name = userInfo.getName();
+        this.userInfo = userInfo;
         this.email = userInfo.getEmail();
         this.password = userInfo.getPassword();
-        if (userInfo.getRoles() != null && !userInfo.getRoles().isEmpty()) {
-            this.authorities = Arrays.stream(userInfo.getRoles().split(","))
-                    .map(String::trim)
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
-        } else {
-            this.authorities = List.of();
+
+        this.authorities = new ArrayList<>();
+        if (userInfo.getRole() != null) {
+            this.authorities.add(new SimpleGrantedAuthority(userInfo.getRole().getName()));
+            if (userInfo.getRole().getPrivileges() != null) {
+                for (Privilege privilege : userInfo.getRole().getPrivileges()) {
+                    this.authorities.add(new SimpleGrantedAuthority(privilege.getName()));
+                }
+            }
         }
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
+    }
+
+    public UserInfo getUserInfo() {
+        return userInfo;
     }
 
     @Override
@@ -44,7 +50,6 @@ public class UserInfoDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        // Use email as username for authentication
         return email;
     }
 
@@ -55,7 +60,7 @@ public class UserInfoDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return userInfo.isActive();
     }
 
     @Override
@@ -65,6 +70,6 @@ public class UserInfoDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return userInfo.isActive();
     }
 }

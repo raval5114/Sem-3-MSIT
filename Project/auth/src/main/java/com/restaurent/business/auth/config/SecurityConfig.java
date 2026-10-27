@@ -35,12 +35,12 @@ public class SecurityConfig {
         return http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                        "/api/v1/auth/login",
-                        "/api/v1/auth/register",
-                        "/api/v1/auth/table-session/init",
-                        "/api/v1/auth/refresh",
+                        "/auth/welcome",
+                        "/auth/addNewUser",
+                        "/auth/login",
+                        "/auth/generateToken",
                         "/.well-known/jwks.json",
-                        "/api/v1/auth/.well-known/jwks.json").permitAll()
+                        "/auth/.well-known/jwks.json").permitAll()
                 .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

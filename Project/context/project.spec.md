@@ -373,6 +373,91 @@ erDiagram
 
 ---
 
-## 12. 🎯 Project Roadmap & Conclusion
+## 12. 🧠 Next-Generation AI & Smart Features (Differentiators)
+
+To elevate DineFlow from a conventional POS to an intelligent operations platform, the following AI-driven features are integrated:
+
+### 12.1 AI Restaurant Agent
+Allows staff to interact with DineFlow via natural language for operations like inventory management, order queries, and menu updates, while strictly adhering to Role-Based Access Control (RBAC).
+
+```mermaid
+flowchart TD
+    Staff[Restaurant Manager] -->|Natural Language Command| Agent[AI Restaurant Agent]
+    Agent -->|Intent Detection & Tool Selection| Auth[Permission Verification]
+    Auth -->|Allowed| API[API Gateway]
+    Auth -->|Denied| Reject[Action Rejected]
+    API --> Services[Menu / Order / Stock / Payment]
+```
+
+### 12.2 Food Ingredient & Allergen Knowledge Graph
+Maintains structured relationships between food items, ingredients, allergens, and dietary labels for contextual answering and precise menu filtering.
+
+```mermaid
+erDiagram
+    FoodItem ||--|{ Recipe : contains
+    Recipe ||--|{ Ingredient : uses
+    Ingredient ||--o{ Allergen : triggers
+    FoodItem ||--o{ DietaryTag : categorizes
+```
+
+### 12.3 Skill-Aware Kitchen Assignment
+Intelligently assigns kitchen preparation tasks based on individual chef skills, current station workloads, and order priorities rather than a generic FIFO queue.
+
+```mermaid
+flowchart LR
+    Order[New Order] --> Items[Order Items]
+    Items --> Skills[Determine Required Skills]
+    Skills --> Match[Match with Available Staff]
+    Match --> Assign[Assign Prep Task to Chef]
+    Assign --> Override{Manual Override?}
+    Override -->|Yes| Reassign[Reassign/Cancel]
+    Override -->|No| Accept[Task Accepted]
+```
+
+### 12.4 Customer Personal Dining Agent
+A conversational AI assistant that helps customers discover food tailored to their diet, budget, preferences, and real-time menu availability.
+
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant A as Personal Dining Agent
+    participant KG as Knowledge Graph
+    participant M as Menu Engine
+    
+    C->>A: "Spicy food under ₹400 without dairy"
+    A->>KG: Check ingredients & allergens
+    A->>M: Query available items & prices
+    M-->>A: Filtered Options
+    A-->>C: Recommend suitable items
+    C->>A: Confirm selection
+    A->>M: Add to Cart
+```
+
+### 12.5 Restaurant Simulation / What-If Engine
+Enables managers to safely simulate operational scenarios (e.g., reducing kitchen staff, changing menu structures) on a branched data state to predict impacts on wait times and throughput without affecting the live restaurant.
+
+```mermaid
+flowchart TD
+    Prod[Real Restaurant Database] -->|Snapshot| Snap[Simulation Database]
+    Snap --> SimEnv[Simulation Environment]
+    Manager -->|Scenario Rules| SimEngine[Simulation Engine]
+    SimEnv --> SimEngine
+    SimEngine --> Results[Simulated KPIs & Potential Bottlenecks]
+```
+
+### 12.6 Context-Aware Adaptive Menu System
+Dynamically constructs a personalized view of the master menu based on real-time factors like dietary restrictions, allergies, inventory status, and time-based rules.
+
+```mermaid
+flowchart TD
+    Master[Master Menu] --> Engine[Adaptive Menu Engine]
+    Context[Customer Context: Diet, Allergies, Budget] --> Engine
+    State[Restaurant State: Stock Availability, Time] --> Engine
+    Engine --> CustomerMenu[Personalized Customer Menu UI]
+```
+
+---
+
+## 13. 🎯 Project Roadmap & Conclusion
 
 The **Smart Contactless Dining Platform** provides a complete, modern, and scalable architecture suitable for implementation as both a high-impact academic showcase and a commercial-ready SaaS solution. By replacing manual touchpoints with secure digital workflows, SCDP maximizes efficiency, boosts revenue, and delivers a superior customer experience.

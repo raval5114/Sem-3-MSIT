@@ -10,8 +10,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class LoginSuccessResponse {
+
     private String message;
     private String token;
+    private String refreshToken;
+    private long expiresIn;
+
     @Builder.Default
     private String tokenType = "Bearer";
 }

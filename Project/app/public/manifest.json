@@ -1,0 +1,39 @@
+{
+  "name": "DineFlow",
+  "short_name": "DineFlow",
+  "description": "Smart Contactless Dining Platform — Staff Portal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#f97316",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "business", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Login",
+      "url": "/login",
+      "description": "Sign in to DineFlow"
+    },
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Staff Dashboard"
+    }
+  ]
+}
+
