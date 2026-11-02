@@ -5,6 +5,7 @@ import java.security.PublicKey;
 import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
+import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -61,7 +62,13 @@ public class JwtService {
 
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        boolean subjectMatches;
+        if (userDetails instanceof UserInfoDetails staffDetails) {
+            subjectMatches = ("u_" + staffDetails.getUserInfo().getId()).equals(username);
+        } else {
+            subjectMatches = username.equals(userDetails.getUsername());
+        }
+        return subjectMatches && !isTokenExpired(token);
     }
 
     public String generateToken(String userName, Map<String, Object> extraClaims) {
@@ -72,7 +79,14 @@ public class JwtService {
 
     public String generateTableSessionToken(String subject, Map<String, Object> extraClaims) {
         // Table Session TTL is 2 hours (7,200,000 ms)
-        long expirationMs = 7_200_000;
+        return generateTableSessionToken(subject, extraClaims, Duration.ofHours(2));
+    }
+
+    public String generateTableSessionToken(String subject, Map<String, Object> extraClaims, Duration lifetime) {
+        long expirationMs = lifetime.toMillis();
+        if (expirationMs <= 0) {
+            throw new IllegalArgumentException("Customer token lifetime must be positive");
+        }
         return createToken(extraClaims, subject, expirationMs);
     }
 

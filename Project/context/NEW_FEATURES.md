@@ -1127,48 +1127,20 @@ Dynamic Menu Service
 
 ---
 
-# 10. Suggested Technology Direction
+# 10. Final Platform Technology Stack
 
-## AI
+The selected DineFlow platform stack is **React, Node.js, Spring Boot, PostgreSQL, MongoDB, Redis, and Docker**. These are the implementation choices for the platform; alternatives mentioned in older examples are not selected platform technologies.
 
-- LangChain / LangGraph
-- LLM provider such as Gemini/Groq/OpenAI
-- Tool calling
-- Structured outputs
+| Area | Selected technology and responsibility |
+|---|---|
+| Frontend | React for the customer PWA, staff/kitchen interfaces, and admin portal. |
+| Backend | Node.js for menu, order, payment, and real-time services; Spring Boot for authentication/security and applicable domain services. |
+| Relational data | PostgreSQL for users, orders, payments, invoices, and table sessions. |
+| Catalog/document data | MongoDB for flexible menu, ingredient, recipe, variant, and modifier data. |
+| Cache and messaging | Redis for caching, session data, and Pub/Sub. |
+| Containers | Docker for packaging and running the platform services. |
 
-## Knowledge Graph
-
-Possible initial implementation:
-
-- PostgreSQL graph-like relational model
-
-Advanced implementation:
-
-- Neo4j
-
-## Event-Driven Communication
-
-- Apache Kafka or RabbitMQ
-
-## Backend
-
-- Spring Boot for security/authentication and suitable domain services
-- Node.js/Express for lightweight services where appropriate
-
-## Frontend
-
-- Flutter for mobile applications
-- React/Next.js for admin/web interfaces
-
-## Caching
-
-- Redis
-
-## Authentication
-
-- JWT
-- RS256
-- Role + privilege based authorization
+AI agents and MCP integration must be implemented as capabilities within these selected backend technologies. A separate AI framework or provider may be evaluated later, but it is not part of the finalized platform stack in this document.
 
 ---
 

@@ -12,8 +12,13 @@ const authApi = axios.create({
 // Attach JWT token to all subsequent requests if available
 authApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
-  if (token) {
+  const publicAuthPaths = ['/login', '/addNewUser', '/generateToken', '/welcome', '/table-session/init'];
+  const requestUrl = config.url?.replace(/\/+$/, '') ?? '';
+  const isPublicAuthRequest = publicAuthPaths.some((path) => requestUrl.endsWith(path));
+  if (token && !isPublicAuthRequest) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else if (isPublicAuthRequest) {
+    delete config.headers.Authorization;
   }
   return config;
 });

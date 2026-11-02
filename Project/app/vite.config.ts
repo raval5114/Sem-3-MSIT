@@ -70,13 +70,24 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: 5173,
+    host:'0.0.0.0',
+    port: 3000,
     proxy: {
       // Proxy /api/auth → auth-service (port 8081) when running locally
       '/api/auth': {
         target: 'http://localhost:8081',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/auth/, '/auth'),
+      },
+      // Menu service routes are mounted at /api/v1/menu in the client.
+      '/api/v1/menu': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/api/v1/orders': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/v1\/orders/, ''),
       },
     },
   },

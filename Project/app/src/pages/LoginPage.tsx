@@ -29,6 +29,12 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
+      <header className="auth-site-header">
+        <Link className="auth-site-brand" to="/login" aria-label="DineFlow home"><span className="auth-site-mark">d<span>.</span></span><span><strong>DineFlow</strong><small>RESTAURANT OS</small></span></Link>
+        <p>Restaurant operations, made simple</p>
+      </header>
+      <main className="auth-main">
+        <div className="auth-visual" aria-hidden="true"><span className="auth-orbit orbit-one" /><span className="auth-orbit orbit-two" /><span className="auth-visual-mark">d<span>.</span></span><p>Make every service<br />run a little smoother.</p><small>One workspace for your restaurant team.</small></div>
       <div className="auth-card">
         <div className="auth-brand">
           <div className="auth-logo">🍽️</div>
@@ -36,6 +42,7 @@ export default function LoginPage() {
           <p className="auth-subtitle">Staff Portal</p>
         </div>
 
+        <p className="auth-kicker">STAFF PORTAL</p>
         <h2 className="auth-heading">Welcome back</h2>
         <p className="auth-description">Sign in to your account to continue</p>
 
@@ -66,7 +73,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className="auth-error" role="alert">{error}</div>}
 
           <button type="submit" className="auth-btn primary" disabled={loading}>
             {loading ? <span className="spinner" /> : 'Sign In'}
@@ -78,6 +85,8 @@ export default function LoginPage() {
           <Link to="/register">Create one</Link>
         </p>
       </div>
+      </main>
+      <footer className="auth-site-footer"><span>© {new Date().getFullYear()} DineFlow</span><span>Thoughtful tools for better service</span><Link to="/register">Create a staff account <span aria-hidden="true">→</span></Link></footer>
     </div>
   );
 }

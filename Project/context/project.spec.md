@@ -121,16 +121,16 @@ Traditional dine-in operations suffer from multiple friction points:
 ```mermaid
 flowchart TB
     subgraph Clients["Frontend Applications"]
-        C_APP["📱 Customer Web App\n(Flutter Web / PWA)"]
-        K_APP["🍳 Kitchen KDS\n(Flutter Web / React)"]
-        A_APP["📊 Admin Dashboard\n(Flutter Web / React)"]
+        C_APP["📱 Customer Web App\n(React PWA)"]
+        K_APP["🍳 Kitchen KDS\n(React)"]
+        A_APP["📊 Admin Dashboard\n(React)"]
         W_APP["🚶 Waiter App\n(Mobile Web)"]
     end
 
     subgraph Gateway["API & Communication Gateway"]
         NGINX["🌐 Nginx Reverse Proxy / Load Balancer"]
         WS_GATEWAY["⚡ WebSocket Server (STOMP / SockJS)"]
-        REST_API["🔌 Spring Boot REST APIs"]
+        REST_API["🔌 REST APIs (Node.js / Spring Boot)"]
     end
 
     subgraph Security["Security & Auth"]
@@ -291,18 +291,18 @@ erDiagram
 
 ---
 
-## 8. 🛠️ Technology Stack Recommendations
+## 8. 🛠️ Final Technology Stack
+
+The following technologies are the selected platform stack. Treat them as final implementation choices, not alternatives.
 
 | Layer | Technology | Justification |
 | :--- | :--- | :--- |
-| **Customer Web App** | **Flutter Web** / **React PWA** | Cross-platform, high-performance UI, fast responsive rendering on mobile viewports. |
-| **Kitchen KDS & Admin** | **Flutter Web** / **React (Vite)** | Modular component hierarchy, rich dashboard charts, clean WebSocket integration. |
-| **Backend Framework** | **Java Spring Boot 3.x** | Enterprise-grade stability, robust Spring Security, Spring Data JPA, native STOMP WebSocket support. |
-| **Security & Auth** | **Spring Security + JWT** | Stateless token authentication with RBAC role enforcement. |
-| **Primary Database** | **PostgreSQL** | ACID-compliant relational data management, JSONB support for flexible menu item options. |
-| **Cache & Message Broker**| **Redis** | Session management, active order queue caching, and WebSocket message publishing. |
-| **Cloud File Storage** | **Firebase Storage / AWS S3** | Secure storage and CDN delivery for food images and vector QR code graphics. |
-| **Payment Gateway** | **Razorpay API** | Seamless SDK support for UPI, Cards, NetBanking, and Webhooks for payment confirmation. |
+| **Frontend UI** | **React** | Customer PWA, Kitchen Display System, waiter experience, and Admin Dashboard. |
+| **Backend Services** | **Node.js** and **Spring Boot** | Node.js services handle menu, order, payment, and real-time APIs; Spring Boot handles authentication, security, and services requiring its domain capabilities. |
+| **Relational Database** | **PostgreSQL** | Transactional data such as users, orders, payments, invoices, and table sessions. |
+| **Document Database** | **MongoDB** | Flexible menu catalog, categories, modifiers, variants, ingredients, and recipes. |
+| **Cache & Pub/Sub** | **Redis** | Session and query caching plus real-time event distribution. |
+| **Containerization** | **Docker** | Containerized services and local multi-service orchestration. |
 ---
 
 ## 9. 🔌 Core API Endpoints Specification

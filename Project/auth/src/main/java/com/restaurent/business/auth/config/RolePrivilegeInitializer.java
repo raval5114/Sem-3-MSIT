@@ -42,18 +42,19 @@ public class RolePrivilegeInitializer implements CommandLineRunner {
         Privilege paymentRefund = createPrivilegeIfNotFound("PAYMENT_REFUND");
 
         Privilege tableManage = createPrivilegeIfNotFound("TABLE_MANAGE");
+        Privilege tableRevenueRead = createPrivilegeIfNotFound("TABLE_REVENUE_READ");
         Privilege staffManage = createPrivilegeIfNotFound("STAFF_MANAGE");
 
         // 2. Initialize Roles and assign corresponding Privileges
         createRoleIfNotFound("SUPER_ADMIN", new HashSet<>(Arrays.asList(
-                menuRead, menuCreate, menuUpdate, paymentRefund, staffManage
+                menuRead, menuCreate, menuUpdate, paymentRefund, staffManage, tableManage, tableRevenueRead
         )));
 
         createRoleIfNotFound("RESTAURANT_ADMIN", new HashSet<>(Arrays.asList(
                 menuRead, menuCreate, menuUpdate, menuToggleAvail,
                 orderCreate, orderReadActive, orderCancel,
                 paymentProcess, paymentRefund,
-                tableManage, staffManage
+                tableManage, staffManage, tableRevenueRead
         )));
 
         createRoleIfNotFound("CHEF", new HashSet<>(Arrays.asList(

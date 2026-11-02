@@ -13,17 +13,34 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import io.jsonwebtoken.JwtException;
 
 import java.io.IOException;
+import java.util.Set;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private static final Set<String> PUBLIC_AUTH_PATHS = Set.of(
+            "/auth/login",
+            "/auth/addNewUser",
+            "/auth/generateToken",
+            "/auth/table-session/init",
+            "/auth/welcome",
+            "/.well-known/jwks.json",
+            "/auth/.well-known/jwks.json"
+    );
 
     @Autowired
     private JwtService jwtService;
 
     @Autowired
     private UserInfoService userDetailsService;
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return PUBLIC_AUTH_PATHS.contains(request.getServletPath());
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -33,11 +50,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-            username = jwtService.extractUsername(token);
+            try {
+                username = jwtService.extractUsername(token);
+            } catch (JwtException | IllegalArgumentException exception) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired bearer token");
+                return;
+            }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserBySubject(username);
+            } catch (org.springframework.security.core.userdetails.UsernameNotFoundException exception) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unknown bearer token subject");
+                return;
+            }
 
             if (jwtService.validateToken(token, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

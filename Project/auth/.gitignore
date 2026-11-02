@@ -1,5 +1,6 @@
 HELP.md
 target/
+/data/jwt-keys/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

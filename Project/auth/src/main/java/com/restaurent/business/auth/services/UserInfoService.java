@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserInfoService implements UserDetailsService {
@@ -32,6 +33,19 @@ public class UserInfoService implements UserDetailsService {
 
         return userDetail.map(UserInfoDetails::new)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    }
+
+    public UserDetails loadUserBySubject(String subject) throws UsernameNotFoundException {
+        if (subject != null && subject.startsWith("u_")) {
+            try {
+                UUID userId = UUID.fromString(subject.substring(2));
+                return repository.findById(userId).map(UserInfoDetails::new)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found: " + subject));
+            } catch (IllegalArgumentException exception) {
+                throw new UsernameNotFoundException("Invalid user subject", exception);
+            }
+        }
+        return loadUserByUsername(subject);
     }
 
     public String addUser(UserRequest userRequest) {

@@ -39,6 +39,7 @@ public class SecurityConfig {
                         "/auth/addNewUser",
                         "/auth/login",
                         "/auth/generateToken",
+                        "/auth/table-session/init",
                         "/.well-known/jwks.json",
                         "/auth/.well-known/jwks.json").permitAll()
                 .anyRequest().authenticated()

@@ -1,6 +1,8 @@
-# Full Implementation Guide: Dual-Purpose Backend (REST + MCP) with FastAPI & LangChain Chatbot
+# MCP Integration Reference: Dual-Purpose Backend (REST + MCP)
 
-This comprehensive document contains the complete codebase, system architecture, and integration instructions to build a **Unified API Layer with Dual Interfaces** alongside a **LangChain + FastAPI Chatbot Agent** acting as an MCP Client.
+> **Platform stack alignment:** DineFlow's finalized stack is React, Node.js, Spring Boot, PostgreSQL, MongoDB, Redis, and Docker. This file contains a generic FastAPI/LangChain proof-of-concept example and is not the selected production implementation. For DineFlow, expose MCP tools from the existing Node.js or Spring Boot services and keep tool calls behind the same authentication, authorization, tenant isolation, and service-layer rules as REST calls. Do not add FastAPI or LangChain to the platform stack based on this reference.
+
+This document illustrates a **Unified API Layer with Dual Interfaces**. The sample chatbot middleware below uses FastAPI and LangChain only to demonstrate MCP client concepts; it is a reference prototype, not a DineFlow technology decision.
 
 ---
 
@@ -15,7 +17,7 @@ This comprehensive document contains the complete codebase, system architecture,
                   │ (REST API Call)   (HTTP POST /chat)
                   ▼                                   ▼
       ┌───────────────────────┐           ┌───────────────────────┐
-      │  Core REST Endpoints  │           │   FastAPI Chatbot     │
+      │  Core REST Endpoints  │           │ FastAPI Demo (Legacy) │
       │  (App Port: 3000/8080)│           │   Gateway (Port 5000) │
       └───────────┬───────────┘           └───────────┬───────────┘
                   │                                   │
@@ -245,9 +247,9 @@ public class AgentToolController {
 
 ---
 
-## 🛠️ Step 2: The FastAPI Chatbot Middleware Layer (MCP Client)
+## 🛠️ Step 2: Reference Prototype — FastAPI Chatbot Middleware (MCP Client)
 
-This isolated service manages the **LangChain AI brain**. On initialization, it reads what tools are hosted on your backend over SSE, converts them dynamically into native function-calling formats, and runs a conversational route.
+This isolated prototype demonstrates an MCP client using FastAPI and LangChain. It is not part of the finalized DineFlow platform stack. A production DineFlow MCP client should be implemented in Node.js or Spring Boot and must use the platform's existing authorization and tenant isolation.
 
 #### `requirements.txt`
 ```text
@@ -389,7 +391,7 @@ Test that your core front-end system can read static application payloads normal
 curl http://localhost:3000/api/users/usr_998877
 ```
 
-### 3. Boot up Chatbot Interface Middleware (FastAPI)
+### 3. Optional Prototype Only: Boot the FastAPI Chatbot Middleware
 Ensure environment tokens are loaded first:
 ```bash
 export OPENAI_API_KEY="your-api-key-here"

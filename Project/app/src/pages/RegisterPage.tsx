@@ -60,6 +60,12 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-page">
+      <header className="auth-site-header">
+        <Link className="auth-site-brand" to="/login" aria-label="DineFlow home"><span className="auth-site-mark">d<span>.</span></span><span><strong>DineFlow</strong><small>RESTAURANT OS</small></span></Link>
+        <p>Restaurant operations, made simple</p>
+      </header>
+      <main className="auth-main register-main">
+        <div className="auth-visual" aria-hidden="true"><span className="auth-orbit orbit-one" /><span className="auth-orbit orbit-two" /><span className="auth-visual-mark">d<span>.</span></span><p>Good service starts<br />with a great team.</p><small>Bring your restaurant workspace together.</small></div>
       <div className="auth-card wide">
         <div className="auth-brand">
           <div className="auth-logo">🍽️</div>
@@ -67,8 +73,9 @@ export default function RegisterPage() {
           <p className="auth-subtitle">Staff Portal</p>
         </div>
 
-        <h2 className="auth-heading">Create Account</h2>
-        <p className="auth-description">Register a new staff member</p>
+        <p className="auth-kicker">JOIN YOUR WORKSPACE</p>
+        <h2 className="auth-heading">Create your account</h2>
+        <p className="auth-description">Set up a staff profile to get started.</p>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-row">
@@ -153,8 +160,8 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {error && <div className="auth-error">{error}</div>}
-          {success && <div className="auth-success">{success}</div>}
+          {error && <div className="auth-error" role="alert">{error}</div>}
+          {success && <div className="auth-success" role="status">{success}</div>}
 
           <button type="submit" className="auth-btn primary" disabled={loading}>
             {loading ? <span className="spinner" /> : 'Create Account'}
@@ -166,6 +173,8 @@ export default function RegisterPage() {
           <Link to="/login">Sign in</Link>
         </p>
       </div>
+      </main>
+      <footer className="auth-site-footer"><span>© {new Date().getFullYear()} DineFlow</span><span>Thoughtful tools for better service</span><Link to="/login">Already a member? Sign in <span aria-hidden="true">→</span></Link></footer>
     </div>
   );
 }

@@ -1,30 +1,45 @@
-const express = require('express');
-const cors = require('cors');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { Pool } = require('pg');
+const { createClient } = require('redis');
 require('dotenv').config();
+const { createApp } = require('./app');
+const { JwtVerifier } = require('./src/jwt-verifier');
+const { createCheckoutService } = require('./src/checkout-service');
+const { createCatalogClient } = require('./src/catalog-client');
+const { createSessionStore } = require('./src/session-store');
+const { createOrderRepository } = require('./src/order-repository');
 
-const app = express();
 const PORT = process.env.PORT || 3002;
 
-app.use(cors());
-app.use(express.json());
+async function start() {
+  const pool = new Pool({ connectionString: process.env.POSTGRES_URI });
+  const redis = createClient({ socket: { host: process.env.REDIS_HOST || 'localhost', port: Number(process.env.REDIS_PORT || 6379) } });
+  redis.on('error', (error) => console.error('[Order Service] Redis error:', error.message));
+  try {
+    await pool.query(await fs.readFile(path.join(__dirname, 'db/001_orders.sql'), 'utf8'));
+    await redis.connect();
+    const repository = createOrderRepository(pool);
+    const sessionStore = createSessionStore(redis);
+    const checkout = createCheckoutService({ catalog: createCatalogClient(), repository, sessionStore, redisPublisher: redis });
+    const app = createApp({ verifier: new JwtVerifier(), checkout, repository, sessionStore, redisPublisher: redis });
+    const server = app.listen(PORT, () => console.log(`[Order Service] Running on port ${PORT}`));
+    const shutdown = async () => {
+      server.close();
+      await redis.quit();
+      await pool.end();
+      process.exit(0);
+    };
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+  } catch (error) {
+    console.error('[Order Service] Startup failed:', error.message);
+    await pool.end();
+    if (redis.isOpen) await redis.quit();
+    process.exit(1);
+  }
+}
 
-// Health Check Endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    service: 'order-service',
-    status: 'UP',
-    timestamp: new Date().toISOString()
-  });
-});
+if (require.main === module) start();
 
-// Root / API Status
-app.get('/', (req, res) => {
-  res.status(200).json({
-    message: 'Order Management Microservice is operational',
-    version: '1.0.0'
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`[Order Service] Running on port ${PORT}`);
-});
+module.exports = { start };

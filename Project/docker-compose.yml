@@ -7,6 +7,7 @@ volumes:
   mongo_data:
   redis_data:
   pgadmin_data:
+  auth_jwt_keys:
 
 services:
   # ----------------------------------------------------
@@ -74,14 +75,23 @@ services:
       context: ./auth
       dockerfile: Dockerfile
     container_name: scdp-auth-svc
+    ports:
+      - "8081:8081"
     restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/${POSTGRES_DB:-scdp_db}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-scdp_user}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-scdp_password}
-      JWT_SECRET: ${JWT_SECRET:-your_super_secret_jwt_key_32_chars_min}
+      JWT_KEY_DIR: /var/lib/dineflow/auth-keys
+      REDIS_HOST: redis-cache
+      REDIS_PORT: 6379
+      # Customer links embedded in table QR codes must use an address reachable from phones.
+      DINEFLOW_CUSTOMER_BASE_URL: ${DINEFLOW_CUSTOMER_BASE_URL:-http://192.168.137.1:3000}
+    volumes:
+      - auth_jwt_keys:/var/lib/dineflow/auth-keys
     depends_on:
       - postgres-db
+      - redis-cache
     networks:
       - scdp-network
 
@@ -90,13 +100,19 @@ services:
       context: ./menu-service
       dockerfile: Dockerfile
     container_name: scdp-menu-svc
+    ports:
+      - "3001:3001"
     restart: always
     environment:
       PORT: 3001
-      MONGO_URI: mongodb://mongo-db:27017/scdp_menu
+      # Set MONGO_URI in the Compose .env file to use MongoDB Atlas.
+      # Defaults to the local Compose database when MONGO_URI is not set.
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo-db:27017/scdp_menu}
+      PG_URI: postgresql://${POSTGRES_USER:-scdp_user}:${POSTGRES_PASSWORD:-scdp_password}@postgres-db:5432/${POSTGRES_DB:-scdp_db}
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
     depends_on:
+      - postgres-db
       - mongo-db
       - redis-cache
     networks:
@@ -107,12 +123,16 @@ services:
       context: ./order-service
       dockerfile: Dockerfile
     container_name: scdp-order-svc
+    ports:
+      - "3002:3002"
     restart: always
     environment:
       PORT: 3002
       POSTGRES_URI: postgresql://${POSTGRES_USER:-scdp_user}:${POSTGRES_PASSWORD:-scdp_password}@postgres-db:5432/${POSTGRES_DB:-scdp_db}
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
+      AUTH_JWKS_URL: http://auth-service:8081/.well-known/jwks.json
+      MENU_SERVICE_URL: http://menu-service:3001
     depends_on:
       - postgres-db
       - redis-cache
@@ -124,6 +144,8 @@ services:
       context: ./notification-service
       dockerfile: Dockerfile
     container_name: scdp-notif-svc
+    ports:
+      - "3004:3004"
     restart: always
     environment:
       PORT: 3004
@@ -139,6 +161,8 @@ services:
       context: ./payment-service
       dockerfile: Dockerfile
     container_name: scdp-payment-svc
+    ports:
+      - "3003:3003"
     restart: always
     environment:
       PORT: 3003
@@ -164,6 +188,8 @@ services:
       - "3000:80"
     depends_on:
       - auth-service
+      - menu-service
+      - order-service
     networks:
       - scdp-network
 

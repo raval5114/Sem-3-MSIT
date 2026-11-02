@@ -4,6 +4,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import MenuPage from './pages/MenuPage';
+import CustomerTableSessionPage from './pages/CustomerTableSessionPage';
+import CustomerOrderingPage from './pages/CustomerOrderingPage';
+import KdsPage from './pages/KdsPage';
 import './auth.css';
 
 function App() {
@@ -11,6 +15,8 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/r/:restaurantId/t/:tableId" element={<CustomerTableSessionPage />} />
+          <Route path="/r/:restaurantId/t/:tableId/menu" element={<CustomerOrderingPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -19,6 +25,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/menu"
+            element={
+              <ProtectedRoute>
+                <MenuPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kds"
+            element={
+              <ProtectedRoute>
+                <KdsPage />
               </ProtectedRoute>
             }
           />

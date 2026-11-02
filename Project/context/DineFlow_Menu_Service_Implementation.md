@@ -365,7 +365,7 @@ The Food Knowledge Graph provides semantic relationships between food items, rec
 
 The initial implementation should remain logical and can be represented using MongoDB collections/documents.
 
-A dedicated graph database such as Neo4j should only be introduced if the graph/query workload later requires it.
+For the finalized DineFlow stack, represent the initial knowledge graph using MongoDB documents and relationships. Neo4j is not part of the selected platform stack.
 
 ---
 
