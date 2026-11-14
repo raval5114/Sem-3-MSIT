@@ -76,6 +76,24 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/api/v1/chat': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/api/v1/butler': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      // Model Context Protocol (MCP) Server for Butler / Agent tools
+      '/mcp': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      // User Profile endpoint
+      '/api/users': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
       '/api/v1/orders': {
         target: 'http://localhost:3002',
         changeOrigin: true,

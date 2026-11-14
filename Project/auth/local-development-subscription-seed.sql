@@ -11,7 +11,8 @@ SELECT gen_random_uuid(), plan.id, feature.feature_key, TRUE, '{}'::jsonb
 FROM subscription_plans plan
 JOIN features feature ON feature.feature_key IN (
     'MENU_MANAGEMENT', 'ORDER_MANAGEMENT', 'TABLE_QR_MANAGEMENT',
-    'KITCHEN_DISPLAY', 'WAITER_OPERATIONS', 'CASHIER_OPERATIONS', 'ANALYTICS'
+    'KITCHEN_DISPLAY', 'WAITER_OPERATIONS', 'CASHIER_OPERATIONS', 'ANALYTICS',
+    'BUTLER_AI_ASSISTANT'
 )
 WHERE plan.plan_key = 'LOCAL_TEAM_DEV'
 ON CONFLICT (plan_id, feature_key)

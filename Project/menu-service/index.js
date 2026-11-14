@@ -44,6 +44,18 @@ const allergenRoutes = require(
 const customerCatalogRoutes = require(
   "./routes/customer-catalog.routes"
 );
+const userRoutes = require(
+  "./routes/user.routes"
+);
+const menuSearchRoutes = require(
+  "./routes/menu.routes"
+);
+const mcpRoutes = require(
+  "./routes/mcp.routes"
+);
+const butlerRoutes = require(
+  "./routes/butler.routes"
+);
 const { requireMenuAccess } = require("./src/effective-access");
 
 /*
@@ -142,6 +154,24 @@ app.get("/", (req, res) => {
 
       allergens:
         "/api/v1/menu/allergens",
+
+      customerCatalog:
+        "/api/v1/menu/customer/catalog",
+
+      search:
+        "/api/v1/menu/search",
+
+      mcpSse:
+        "/mcp/sse",
+
+      mcpMessages:
+        "/mcp/messages",
+
+      mcpTools:
+        "/mcp/tools",
+
+      userProfile:
+        "/api/users/:id",
     },
   });
 });
@@ -151,6 +181,19 @@ app.get("/", (req, res) => {
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Butler orchestration service and MCP endpoints
+app.use("/mcp", mcpRoutes);
+app.use("/api/v1/mcp", mcpRoutes);
+app.use("/api/v1/chat", butlerRoutes);
+app.use("/api/v1/butler", butlerRoutes);
+
+// Dual-Purpose REST User Profile Endpoint (App View Layer)
+app.use("/api/users", userRoutes);
+app.use("/api/v1/users", userRoutes);
+
+// Dynamic Menu Search & Filter REST Route
+app.use("/api/v1/menu/search", menuSearchRoutes);
 
 app.use(
   "/api/v1/menu/categories",

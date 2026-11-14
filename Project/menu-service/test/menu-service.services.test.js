@@ -123,9 +123,9 @@ describe("RecipeService, KnowledgeGraphService, and AdaptiveMenuService", () => 
   it.todo("KnowledgeGraphService should derive an allergen relationship from recipe ingredients");
   it.todo("AdaptiveMenuService should filter items containing excluded allergens");
 
-  it("documents which production services are currently missing", () => {
+  it("documents which production services are currently missing or implemented", () => {
     assert.deepEqual(Object.keys(recipeService), []);
     assert.deepEqual(Object.keys(knowledgeGraphService), []);
-    assert.deepEqual(Object.keys(adaptiveMenuService), []);
+    assert.ok(typeof adaptiveMenuService.searchMenu === "function");
   });
 });

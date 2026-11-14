@@ -142,9 +142,10 @@ export default function DashboardPage({ initialView = 'overview' }: { initialVie
     </>}
 
     {view === 'api-routes' && <><PageHeader eyebrow={eyebrow} title={title} description={description} /><RouteMap /></>}
+    {view === 'assistant' && <><PageHeader eyebrow={eyebrow} title={title} description={description} /><section className="df-panel"><div className="df-panel-heading"><div><p className="df-eyebrow">AI ACCESS</p><h2>Butler status</h2></div></div><div className="df-card-list"><article className="df-data-card"><span className="df-data-icon green">✦</span><div><strong>Butler is available for this restaurant</strong><small>{restaurantId ? `Restaurant ID: ${restaurantId}` : 'Restaurant context is still loading.'}</small></div><span className={`df-pill ${restaurantId ? 'success' : 'muted'}`}>{restaurantId ? 'Ready' : 'Waiting'}</span></article></div></section></>}
     {view === 'tables' && <TableManagement restaurantId={restaurantId ?? ''} eyebrow={eyebrow} title={title} description={description} />}
     {view === 'revenue' && <TableRevenueAnalytics eyebrow={eyebrow} title={title} description={description} />}
-    {view !== 'overview' && view !== 'menu' && view !== 'ingredients' && view !== 'allergens' && view !== 'api-routes' && view !== 'tables' && view !== 'revenue' && <><PageHeader eyebrow={eyebrow} title={title} description={description} /><ComingSoon view={view} /></>}
+    {view !== 'overview' && view !== 'menu' && view !== 'ingredients' && view !== 'allergens' && view !== 'api-routes' && view !== 'assistant' && view !== 'tables' && view !== 'revenue' && <><PageHeader eyebrow={eyebrow} title={title} description={description} /><ComingSoon view={view} /></>}
   </AppShell>;
 }
 

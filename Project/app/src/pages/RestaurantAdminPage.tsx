@@ -141,6 +141,20 @@ export default function RestaurantAdminPage() {
           </section>
 
           <section className="df-panel">
+            <div className="df-panel-heading"><div><p className="df-eyebrow">AI ACCESS</p><h2>Butler status</h2></div><span className={`df-pill ${accessContext?.features?.BUTLER_AI_ASSISTANT?.enabled || accessContext?.features?.butler_ai_assistant?.enabled ? 'success' : 'muted'}`}>{accessContext?.features?.BUTLER_AI_ASSISTANT?.enabled || accessContext?.features?.butler_ai_assistant?.enabled ? 'Enabled' : 'Unavailable'}</span></div>
+            <div className="df-card-list">
+              <article className="df-data-card">
+                <span className="df-data-icon green">✦</span>
+                <div>
+                  <strong>Butler AI Assistant</strong>
+                  <small>{accessContext?.features?.BUTLER_AI_ASSISTANT?.enabled || accessContext?.features?.butler_ai_assistant?.enabled ? 'This restaurant can access Butler from the authenticated workspace.' : 'Butler is not currently enabled for this restaurant. Contact DineFlow support or your platform administrator to activate it.'}</small>
+                </div>
+                <span className={`df-pill ${accessContext?.features?.BUTLER_AI_ASSISTANT?.enabled || accessContext?.features?.butler_ai_assistant?.enabled ? 'success' : 'muted'}`}>{accessContext?.features?.BUTLER_AI_ASSISTANT?.enabled || accessContext?.features?.butler_ai_assistant?.enabled ? 'Active' : 'Inactive'}</span>
+              </article>
+            </div>
+          </section>
+
+          <section className="df-panel">
             <div className="df-panel-heading"><div><p className="df-eyebrow">ROLE CATALOGUE</p><h2>Staff role permissions</h2></div></div>
             <p className="df-footnote">These platform-defined permissions apply to every account with the selected role. Assign roles below; permission policy itself is centrally managed.</p>
             <div className="df-role-grid">

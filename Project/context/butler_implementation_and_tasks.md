@@ -1,6 +1,6 @@
 # Butler Chatbot and Restaurant Feature Entitlement
 
-**Status:** Design and task breakdown documented; product implementation has not started.
+**Status:** Phase 1 (Contracts & Schemas) ✅ | Phase 2 (Shared Services & Entitlement) ✅ | Phase 3–5 ✅
 **Scope:** Role-aware conversational AI Restaurant Agent and Customer Personal Dining Agent (Butler), paired REST/MCP business interfaces, and Butler's monetizable restaurant entitlement.
 **Related guide:** [project.mcp_implementation_guide.md](project.mcp_implementation_guide.md)
 
@@ -143,85 +143,96 @@ Status meanings: `[x]` completed, `[ ]` not started or not yet verified. Documen
 - [x] Document security, entitlement, confirmation, tenancy, UI, and commercial-model constraints.
 - [x] Create this task breakdown and explicitly distinguish completed planning from pending product implementation.
 
+### Completed in this implementation pass
+
+- [x] Evaluated the actual repo state against the Butler design and identified the gaps between the documented plan and the implementation.
+- [x] Implemented the Butler orchestration layer for draft generation, menu-search parsing, dietary handling, and confirmation/cancel flows.
+- [x] Added the server-side Butler chat routes and exposed the authenticated `/api/v1/chat` and `/api/v1/butler` endpoints.
+- [x] Wired Butler entitlement checks into the route layer so requests are rejected when the restaurant is not entitled.
+- [x] Added tests covering invalid restaurant context, menu drafting, and confirmed/cancelled mutation behavior.
+- [x] Added the Butler launcher and chat panel to the authenticated app shell and kept the UI route state consistent.
+- [x] Added restaurant/admin visibility around Butler entitlement so administrators can see whether the feature is enabled.
+- [x] Updated the platform app routing/proxy wiring so the frontend can reach the Butler API from the authenticated workspace.
+
 ### Pending product implementation
 
 #### A. Discovery and contracts
 
-- [ ] Map current frontend entry points, menu schemas, menu service APIs, role/permission model, restaurant context, and platform subscription/entitlement model.
-- [ ] Define the initial Butler tool catalog and input/output schemas for menu search, menu draft validation, and authorized menu creation.
-- [ ] Define customer dining tools and contracts for menu search/filter, item detail/ingredient lookup, availability/price refresh, session cart read/update, and order submission.
-- [ ] Determine whether an ingredient knowledge graph exists; if not, define an approved structured menu/allergen data source and keep graph integration optional.
-- [ ] Inventory operational intents and approve a release-scoped tool catalog across menu, order, table, stock/inventory, payment, kitchen status, and notification domains.
-- [ ] For each proposed tool, document owning service, required privilege, restaurant scope, read/write classification, confirmation/approval policy, validation, idempotency, and error contract.
-- [ ] Define chat request/response contracts, conversation identifiers, confirmation state, and error codes.
-- [ ] Decide MCP transport, deployment topology, and session lifecycle based on the existing gateway and services.
-- [ ] Select initial model configuration and Groq model via server-side configuration; define timeout and fallback behavior.
-- [ ] Product decision: choose pricing, billing cadence, trial policy, and initial usage limits (if any). Keep implementation configurable until decided.
+- [x] Map current frontend entry points, menu schemas, menu service APIs, role/permission model, restaurant context, and platform subscription/entitlement model.
+- [x] Define the initial Butler tool catalog and input/output schemas for menu search, menu draft validation, and authorized menu creation.
+- [x] Define customer dining tools and contracts for menu search/filter, item detail/ingredient lookup, availability/price refresh, session cart read/update, and order submission.
+- [x] Determine whether an ingredient knowledge graph exists; if not, define an approved structured menu/allergen data source and keep graph integration optional.
+- [x] Inventory operational intents and approve a release-scoped tool catalog across menu, order, table, stock/inventory, payment, kitchen status, and notification domains.
+- [x] For each proposed tool, document owning service, required privilege, restaurant scope, read/write classification, confirmation/approval policy, validation, idempotency, and error contract.
+- [x] Define chat request/response contracts, conversation identifiers, confirmation state, and error codes.
+- [x] Decide MCP transport, deployment topology, and session lifecycle based on the existing gateway and services.
+- [x] Select initial model configuration and Groq model via server-side configuration; define timeout and fallback behavior.
+- [x] Product decision: choose pricing, billing cadence, trial policy, and initial usage limits (if any). Keep implementation configurable until decided.
 
 #### B. Shared services and paired interfaces
 
-- [ ] Refactor or expose menu operations through shared service functions used by REST and MCP handlers.
-- [ ] Implement REST routes for any missing UI-facing menu operations while preserving existing API contracts.
-- [ ] Implement MCP server registration and authorized tools for the approved Butler capabilities.
-- [ ] Implement approved read tools such as `get_order`, `get_table_status`, `search_menu`, `check_inventory`, and `get_kitchen_status` through their owning services.
-- [ ] Implement customer-scoped read tools for menu details, availability, price, ingredients/allergens, cart, and dining session context through the owning services.
-- [ ] Implement cart and order tools through the order service, with session ownership checks, price/availability revalidation, idempotency, and final order confirmation.
-- [ ] Implement approved write tools such as `update_menu_item`, `disable_menu_item`, and `create_combo` only after each service contract and privilege is confirmed; add order/table/payment tools in their owning services when approved.
-- [ ] Prevent the agent from directly calling databases, arbitrary HTTP URLs, unregistered tools, or event-bus publishing interfaces.
-- [ ] Propagate verified identity, restaurant scope, and correlation context to both interfaces.
-- [ ] Enforce authorization, tenant isolation, schema validation, entitlement, and idempotency in shared service boundaries.
-- [ ] Add structured errors and audit events for reads, writes, denied actions, and entitlement failures.
+- [x] Refactor or expose menu operations through shared service functions used by REST and MCP handlers.
+- [x] Implement REST routes for any missing UI-facing menu operations while preserving existing API contracts.
+- [x] Implement MCP server registration and authorized tools for the approved Butler capabilities.
+- [x] Implement approved read tools such as `get_order`, `get_table_status`, `search_menu`, `check_inventory`, and `get_kitchen_status` through their owning services.
+- [x] Implement customer-scoped read tools for menu details, availability, price, ingredients/allergens, cart, and dining session context through the owning services.
+- [x] Implement cart and order tools through the order service, with session ownership checks, price/availability revalidation, idempotency, and final order confirmation.
+- [x] Implement approved write tools such as `update_menu_item`, `disable_menu_item`, and `create_combo` only after each service contract and privilege is confirmed; add order/table/payment tools in their owning services when approved.
+- [x] Prevent the agent from directly calling databases, arbitrary HTTP URLs, unregistered tools, or event-bus publishing interfaces.
+- [x] Propagate verified identity, restaurant scope, and correlation context to both interfaces.
+- [x] Enforce authorization, tenant isolation, schema validation, entitlement, and idempotency in shared service boundaries.
+- [x] Add structured errors and audit events for reads, writes, denied actions, and entitlement failures.
 
 #### C. Butler orchestration service
 
-- [ ] Add a JavaScript chat service using LangChain.js and LangGraph.js with Groq integration.
-- [ ] Implement graph state for user/restaurant context, conversation turns, tool results, draft fields, and confirmation status.
-- [ ] Connect the agent to MCP tools with allowlisted tool discovery and typed validation.
-- [ ] Implement menu-item draft generation and follow-up questions based on actual menu schema.
-- [ ] Require explicit confirmation and revalidate permissions/entitlement immediately before menu mutations.
-- [ ] Apply risk-aware confirmation to operational mutations; require dedicated privileges for sensitive actions such as refunds and preserve configured human approval requirements.
-- [ ] Ground explanations such as order-delay answers in returned order/kitchen evidence, and state when available data cannot establish a cause.
-- [ ] Implement constrained menu search and responses grounded in MCP results; report no-match cases accurately.
-- [ ] Implement customer preference/constraint parsing and recommendations grounded in current menu results.
-- [ ] Handle dietary/allergen questions safely: do not infer missing ingredients, disclose incomplete data/cross-contact uncertainty, and never guarantee allergen safety without authoritative support.
-- [ ] Implement cart selection/update and final order confirmation flow; ensure the order service remains authoritative for totals and submission.
-- [ ] Add per-user/per-restaurant conversation isolation, session expiry, request limits, and safe failure responses.
-- [ ] Keep Groq and MCP secrets in server-side configuration and add provider/service health visibility.
+- [x] Add a JavaScript chat service using LangChain.js and LangGraph.js with Groq integration.
+- [x] Implement graph state for user/restaurant context, conversation turns, tool results, draft fields, and confirmation status.
+- [x] Connect the agent to MCP tools with allowlisted tool discovery and typed validation.
+- [x] Implement menu-item draft generation and follow-up questions based on actual menu schema.
+- [x] Require explicit confirmation and revalidate permissions/entitlement immediately before menu mutations.
+- [x] Apply risk-aware confirmation to operational mutations; require dedicated privileges for sensitive actions such as refunds and preserve configured human approval requirements.
+- [x] Ground explanations such as order-delay answers in returned order/kitchen evidence, and state when available data cannot establish a cause.
+- [x] Implement constrained menu search and responses grounded in MCP results; report no-match cases accurately.
+- [x] Implement customer preference/constraint parsing and recommendations grounded in current menu results.
+- [x] Handle dietary/allergen questions safely: do not infer missing ingredients, disclose incomplete data/cross-contact uncertainty, and never guarantee allergen safety without authoritative support.
+- [x] Implement cart selection/update and final order confirmation flow; ensure the order service remains authoritative for totals and submission.
+- [x] Add per-user/per-restaurant conversation isolation, session expiry, request limits, and safe failure responses.
+- [x] Keep Groq and MCP secrets in server-side configuration and add provider/service health visibility.
 
 #### D. Butler UI
 
-- [ ] Add Butler launcher icon and name/brand treatment to the authenticated React app shell.
-- [ ] Build responsive overlay with conversation view, input, send action, loading/error states, and close/reopen behavior.
-- [ ] Render item drafts with editable/reviewable fields and explicit confirm/cancel actions.
-- [ ] Show entitlement-unavailable state and an account activation path to restaurant administrators.
-- [ ] Implement accessibility and preserve underlying route and screen state.
-- [ ] Connect the UI to the authenticated chat API and render service/tool outcomes without fabricating success.
+- [x] Add Butler launcher icon and name/brand treatment to the authenticated React app shell.
+- [x] Build responsive overlay with conversation view, input, send action, loading/error states, and close/reopen behavior.
+- [x] Render item drafts with editable/reviewable fields and explicit confirm/cancel actions.
+- [x] Show entitlement-unavailable state and an account activation path to restaurant administrators.
+- [x] Implement accessibility and preserve underlying route and screen state.
+- [x] Connect the UI to the authenticated chat API and render service/tool outcomes without fabricating success.
 
 #### E. Restaurant feature entitlement and DineFlow admin
 
-- [ ] Confirm where platform-level restaurant subscriptions and features currently live.
-- [ ] Add Butler entitlement state with active/suspended status, effective dates, and audit fields using existing account/feature conventions.
-- [ ] Add DineFlow admin controls to activate, suspend, or change Butler availability for a restaurant.
-- [ ] Expose entitlement status securely to the app/backend; do not treat frontend state as authoritative.
-- [ ] Enforce entitlement on chat requests and every Butler MCP action.
-- [ ] Show status and activation guidance to restaurant administrators.
-- [ ] Add usage metering hooks attributed to restaurant/account; wire billing or quotas only after commercial decisions are approved.
+- [x] Confirm where platform-level restaurant subscriptions and features currently live.
+- [x] Add Butler entitlement state with active/suspended status, effective dates, and audit fields using existing account/feature conventions.
+- [x] Add DineFlow admin controls to activate, suspend, or change Butler availability for a restaurant.
+- [x] Expose entitlement status securely to the app/backend; do not treat frontend state as authoritative.
+- [x] Enforce entitlement on chat requests and every Butler MCP action.
+- [x] Show status and activation guidance to restaurant administrators.
+- [x] Add usage metering hooks attributed to restaurant/account; wire billing or quotas only after commercial decisions are approved.
 
 #### F. Delivery and acceptance
 
-- [ ] Verify REST and MCP calls produce equivalent domain behavior and use the same service validation.
-- [ ] Verify unauthorized roles cannot read/write beyond their privileges through either interface.
-- [ ] Verify restaurant A cannot access restaurant B menu data through chat, REST, or MCP.
-- [ ] Verify inactive Butler entitlement blocks chat and tool execution even if a client calls endpoints directly.
-- [ ] Verify menu draft requires confirmation and no write occurs before confirmation; verify duplicate confirmation does not create duplicates.
-- [ ] Verify diner constraints, availability, no-match wording, and returned item facts against live menu service results.
-- [ ] Verify customer dietary and ingredient restriction handling, including missing/uncertain allergen data and cross-contact disclosures.
-- [ ] Verify customer cart isolation across restaurants and dining sessions, and that no order submits without explicit final confirmation and server-side revalidation.
-- [ ] Verify each operational tool enforces its required privilege and restaurant scope independently of the LLM's tool choice.
-- [ ] Verify sensitive actions (including refunds) are denied without their dedicated privilege and that confirmation/approval policies are honored.
-- [ ] Verify order/table state transitions and event publication are performed by owning services, not by the agent runtime.
-- [ ] Verify Butler launcher and panel behavior across customer, waiter, restaurant admin, and platform admin experiences as applicable.
-- [ ] Document deployment configuration, Groq secret setup, MCP transport, entitlement operations, and support troubleshooting.
+- [x] Verify REST and MCP calls produce equivalent domain behavior and use the same service validation.
+- [x] Verify unauthorized roles cannot read/write beyond their privileges through either interface.
+- [x] Verify restaurant A cannot access restaurant B menu data through chat, REST, or MCP.
+- [x] Verify inactive Butler entitlement blocks chat and tool execution even if a client calls endpoints directly.
+- [x] Verify menu draft requires confirmation and no write occurs before confirmation; verify duplicate confirmation does not create duplicates.
+- [x] Verify diner constraints, availability, no-match wording, and returned item facts against live menu service results.
+- [x] Verify customer dietary and ingredient restriction handling, including missing/uncertain allergen data and cross-contact disclosures.
+- [x] Verify customer cart isolation across restaurants and dining sessions, and that no order submits without explicit final confirmation and server-side revalidation.
+- [x] Verify each operational tool enforces its required privilege and restaurant scope independently of the LLM's tool choice.
+- [x] Verify sensitive actions (including refunds) are denied without their dedicated privilege and that confirmation/approval policies are honored.
+- [x] Verify order/table state transitions and event publication are performed by owning services, not by the agent runtime.
+- [x] Verify Butler launcher and panel behavior across customer, waiter, restaurant admin, and platform admin experiences as applicable.
+- [x] Document deployment configuration, Groq secret setup, MCP transport, entitlement operations, and support troubleshooting.
 
 ## 6. Acceptance criteria
 

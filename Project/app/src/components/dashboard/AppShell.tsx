@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { UserSession } from '../../types/session';
 import { useAuth } from '../../context/AuthContext';
+import ButlerChatPanel from '../butler/ButlerChatPanel';
 
 export type DashboardView =
   | 'overview' | 'menu' | 'ingredients' | 'allergens' | 'food-intelligence'
@@ -22,15 +23,25 @@ const viewByFeature: Record<string, { id: DashboardView; icon: string; group: st
   TABLE_QR_MANAGEMENT: { id: 'tables', icon: '▦', group: 'RESTAURANT OPERATIONS', permissions: ['TABLE_MANAGE'] },
   CASHIER_OPERATIONS: { id: 'payments', icon: '＄', group: 'RESTAURANT OPERATIONS', permissions: ['PAYMENT_PROCESS', 'ORDER_READ_ACTIVE'] },
   ANALYTICS: { id: 'revenue', icon: '↗', group: 'RESTAURANT ANALYTICS', permissions: ['TABLE_REVENUE_READ'] },
+  BUTLER_AI_ASSISTANT: { id: 'assistant', icon: '✦', group: 'INTELLIGENCE', permissions: [] },
 };
 export default function AppShell({ user, activeView, onNavigate, onLogout, children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [butlerOpen, setButlerOpen] = useState(false);
   const { accessContext, accessLoading, accessError, refreshAccessContext } = useAuth();
   const role = accessContext?.role ?? 'TEAM MEMBER';
   const primaryRole = role.replaceAll('_', ' ');
   const email = accessContext?.email ?? user.email ?? 'Restaurant team member';
   const restaurantIdentity = accessContext?.restaurantName || accessContext?.restaurantId || 'Restaurant workspace';
   const initials = email.slice(0, 1).toUpperCase();
+  const butlerEnabled = Boolean(
+    accessContext && (
+      accessContext.navigation.some((item) => item.featureKey === 'BUTLER_AI_ASSISTANT')
+      || accessContext.features['BUTLER_AI_ASSISTANT']?.enabled
+      || accessContext.features.butler_ai_assistant?.enabled
+    )
+  );
+
   const availableItems = (accessContext?.navigation ?? [])
     .map((item) => {
       const metadata = viewByFeature[item.featureKey];
@@ -40,12 +51,15 @@ export default function AppShell({ user, activeView, onNavigate, onLogout, child
         : null;
     })
     .filter((item): item is { id: DashboardView; icon: string; group: string; label: string } => item !== null);
+
+  const butlerNavigationItem = butlerEnabled ? { id: 'assistant' as const, icon: '✦', group: 'INTELLIGENCE', label: 'Butler' } : null;
   const sections = [
     { group: 'WORKSPACE', items: [
       { id: 'overview' as const, label: 'Overview', icon: '◫' },
       ...(role === 'RESTAURANT_ADMIN' && accessContext?.permissions.includes('STAFF_MANAGE')
         ? [{ id: 'admin' as const, label: 'Administration', icon: '⚙' }]
         : []),
+      ...(butlerNavigationItem ? [butlerNavigationItem] : []),
     ] },
     ...Array.from(new Set(availableItems.map((item) => item.group))).map((group) => ({
       group,
@@ -56,10 +70,17 @@ export default function AppShell({ user, activeView, onNavigate, onLogout, child
     ? 'Overview'
     : activeView === 'admin'
       ? 'Administration'
-    : availableItems.find((item) => item.id === activeView)?.label ?? 'Dashboard';
+      : activeView === 'assistant'
+        ? 'Butler'
+        : availableItems.find((item) => item.id === activeView)?.label ?? 'Dashboard';
 
   const navigate = (view: DashboardView) => {
     void refreshAccessContext();
+    if (view === 'assistant') {
+      setButlerOpen(true);
+    } else {
+      setButlerOpen(false);
+    }
     onNavigate(view);
     setMobileOpen(false);
   };
@@ -116,6 +137,17 @@ export default function AppShell({ user, activeView, onNavigate, onLogout, child
           <div className="df-breadcrumb"><span>{restaurantIdentity}</span><b>/</b><strong>{activeLabel}</strong></div>
           <div className="df-top-actions">
             <div className="df-live-status"><span /> {primaryRole}</div>
+            {butlerEnabled && (
+              <button
+                type="button"
+                className={`df-butler-launcher ${butlerOpen ? 'active' : ''}`}
+                onClick={() => { setButlerOpen((current) => !current); if (activeView !== 'assistant') onNavigate('assistant'); }}
+                aria-label="Open Butler assistant"
+                title="Open Butler assistant"
+              >
+                ✦ Butler
+              </button>
+            )}
             <button
               className="df-icon-button"
               aria-label="Refresh access"
@@ -129,6 +161,13 @@ export default function AppShell({ user, activeView, onNavigate, onLogout, child
         </header>
         {accessError && <div className="df-access-warning" role="alert">Your latest permissions could not be refreshed: {accessError}</div>}
         <main className="df-page-content">{children}</main>
+        {(butlerEnabled && (butlerOpen || activeView === 'assistant')) && (
+          <ButlerChatPanel
+            restaurantId={accessContext?.restaurantId ?? undefined}
+            open={butlerOpen || activeView === 'assistant'}
+            onClose={() => { setButlerOpen(false); if (activeView === 'assistant') onNavigate('overview'); }}
+          />
+        )}
         <footer className="df-app-footer"><span>© {new Date().getFullYear()} DineFlow</span><span>Restaurant operations, thoughtfully connected</span><span>{restaurantIdentity}</span></footer>
       </div>
     </div>
