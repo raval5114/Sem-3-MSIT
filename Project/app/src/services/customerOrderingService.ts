@@ -35,7 +35,7 @@ export interface CustomerOrderLine {
 }
 export interface PlacedOrder {
   id: string; status: string; paymentMethod: string; paymentStatus: string;
-  currency: string; subtotal: number; total: number; createdAt: string;
+  currency: string; subtotal: number; total: number; createdAt: string; tableId?: string;
   items: { id?: string; name: string; quantity: number; unitPrice: number; lineTotal: number; selections: { groupName: string; optionName: string }[] }[];
 }
 
@@ -73,7 +73,7 @@ function tokenConfig() {
 }
 
 function staffConfig() {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('access_token');
   if (!token) throw new Error('Staff authentication required');
   return { headers: { Authorization: `Bearer ${token}` } };
 }
@@ -102,8 +102,16 @@ export const customerOrderingService = {
     const { data } = await paymentApi.post<{ success: boolean; data: PaymentVerifyResult }>('/verify', verification, tokenConfig());
     return data.data;
   },
+  async recordCounterPayment(orderId: string, idempotencyKey: string): Promise<PaymentVerifyResult> {
+    const { data } = await paymentApi.post<{ success: boolean; data: PaymentVerifyResult }>(
+      '/counter-payment',
+      { orderId, idempotencyKey },
+      staffConfig(),
+    );
+    return data.data;
+  },
   async getOrderStatus(orderId: string): Promise<OrderStatusInfo> {
-    const token = sessionStorage.getItem('customer_access_token') || localStorage.getItem('token');
+    const token = sessionStorage.getItem('customer_access_token') || localStorage.getItem('access_token');
     const { data } = await orderApi.get<{ success: boolean; data: OrderStatusInfo }>(`/${orderId}/status`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -113,8 +121,25 @@ export const customerOrderingService = {
     const { data } = await orderApi.get<{ success: boolean; data: PlacedOrder[] }>('/kitchen/queue', staffConfig());
     return data.data;
   },
+  async getOperationsQueue(workspace: 'orders' | 'waiter' | 'cashier'): Promise<PlacedOrder[]> {
+    const path = workspace === 'waiter' ? '/waiter/queue' : workspace === 'cashier' ? '/cashier/orders' : '/orders/active';
+    const { data } = await orderApi.get<{ success: boolean; data: PlacedOrder[] }>(path, staffConfig());
+    return data.data;
+  },
+  async markOrderServed(orderId: string): Promise<PlacedOrder> {
+    const { data } = await orderApi.patch<{ success: boolean; data: PlacedOrder }>(`/waiter/${encodeURIComponent(orderId)}/serve`, {}, staffConfig());
+    return data.data;
+  },
   async updateOrderStatus(orderId: string, status: string): Promise<PlacedOrder> {
     const { data } = await orderApi.patch<{ success: boolean; data: PlacedOrder }>(`/${orderId}/status`, { status }, staffConfig());
+    return data.data;
+  },
+  async updateKitchenOrderStatus(orderId: string, status: string): Promise<PlacedOrder> {
+    const { data } = await orderApi.patch<{ success: boolean; data: PlacedOrder }>(
+      `/kitchen/${encodeURIComponent(orderId)}/status`,
+      { status },
+      staffConfig(),
+    );
     return data.data;
   },
 };

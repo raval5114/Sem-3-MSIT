@@ -67,12 +67,7 @@ router.post("/", async (req, res) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const filters = {};
-
-    if (req.query.restaurantId) {
-      filters.restaurantId =
-        req.query.restaurantId;
-    }
+    const filters = { restaurantId: req.accessContext.restaurantId };
 
     const categories =
       await getCategories(filters);
@@ -113,7 +108,8 @@ router.get("/:id", async (req, res) => {
   try {
     const category =
       await getCategoryById(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!category) {
@@ -165,7 +161,8 @@ router.put("/:id", async (req, res) => {
     const category =
       await updateCategory(
         req.params.id,
-        req.body
+        req.body,
+        req.accessContext.restaurantId
       );
 
     if (!category) {
@@ -212,7 +209,8 @@ router.delete("/:id", async (req, res) => {
   try {
     const category =
       await deleteCategory(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!category) {

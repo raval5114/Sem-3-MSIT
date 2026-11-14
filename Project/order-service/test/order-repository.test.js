@@ -34,3 +34,19 @@ test("rolls back when inserting a line snapshot fails", async () => {
   await assert.rejects(repository.create(order), /insert failed/);
   assert.equal(calls.at(-1), "ROLLBACK");
 });
+
+test("cashier queue includes outstanding orders even after service is complete", async () => {
+  let query;
+  const repository = createOrderRepository({
+    query: async (sql, params) => {
+      query = { sql, params };
+      return { rows: [] };
+    },
+  });
+
+  await repository.findActiveOrdersByRestaurant("r1", null, true);
+
+  assert.match(query.sql, /payment_status IN \('UNPAID', 'PENDING', 'FAILED'\)/);
+  assert.match(query.sql, /status != 'CANCELLED'/);
+  assert.deepEqual(query.params, ["r1"]);
+});

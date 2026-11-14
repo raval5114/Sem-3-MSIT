@@ -8,6 +8,11 @@ const allergenSchema = new mongoose.Schema(
       default: () => new mongoose.Types.ObjectId().toString(),
     },
 
+    restaurantId: {
+      type: String,
+      index: true,
+    },
+
     code: {
       type: String,
       required: true,

@@ -20,14 +20,16 @@ const getIngredients = async (filters = {}) => {
   });
 };
 
-const getIngredientById = async (id) => {
-  return await Ingredient.findById(id);
+const getIngredientById = async (id, restaurantId) => {
+  return restaurantId
+    ? await Ingredient.findOne({ _id: id, restaurantId })
+    : await Ingredient.findById(id);
 };
 
-const updateIngredient = async (id, data) => {
+const updateIngredient = async (id, data, restaurantId) => {
   try {
-    return await Ingredient.findByIdAndUpdate(
-      id,
+    return await Ingredient.findOneAndUpdate(
+      restaurantId ? { _id: id, restaurantId } : { _id: id },
       data,
       {
         new: true,
@@ -45,8 +47,10 @@ const updateIngredient = async (id, data) => {
   }
 };
 
-const deleteIngredient = async (id) => {
-  return await Ingredient.findByIdAndDelete(id);
+const deleteIngredient = async (id, restaurantId) => {
+  return await Ingredient.findOneAndDelete(
+    restaurantId ? { _id: id, restaurantId } : { _id: id }
+  );
 };
 
 module.exports = {

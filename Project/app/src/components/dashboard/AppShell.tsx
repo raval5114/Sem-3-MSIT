@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import type { UserSession } from '../../types/session';
+import { useAuth } from '../../context/AuthContext';
 
 export type DashboardView =
   | 'overview' | 'menu' | 'ingredients' | 'allergens' | 'food-intelligence'
-  | 'orders' | 'kitchen' | 'tables' | 'revenue' | 'payments' | 'assistant' | 'simulation' | 'api-routes';
+  | 'orders' | 'kitchen' | 'waiter' | 'tables' | 'revenue' | 'payments' | 'admin' | 'assistant' | 'simulation' | 'api-routes';
 
 interface AppShellProps {
   user: UserSession;
@@ -13,33 +14,52 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-const navigation: { group: string; items: { id: DashboardView; label: string; icon: string; planned?: boolean }[] }[] = [
-  { group: 'WORKSPACE', items: [{ id: 'overview', label: 'Overview', icon: '◫' }, { id: 'menu', label: 'Menu catalog', icon: '▤' }] },
-  { group: 'FOOD INTELLIGENCE', items: [
-    { id: 'ingredients', label: 'Ingredients', icon: '◉' },
-    { id: 'allergens', label: 'Allergens & diets', icon: '⌘' },
-    { id: 'food-intelligence', label: 'Food graph', icon: '⌬', planned: true },
-  ] },
-    { group: 'RESTAURANT OPERATIONS', items: [
-    { id: 'orders', label: 'Orders', icon: '▣', planned: true },
-    { id: 'kitchen', label: 'Kitchen display', icon: '◷', planned: true },
-    { id: 'tables', label: 'Tables & QR', icon: '▦' },
-    { id: 'revenue', label: 'Table revenue', icon: '↗' },
-    { id: 'payments', label: 'Payments', icon: '＄', planned: true },
-  ] },
-  { group: 'INTELLIGENCE', items: [
-    { id: 'assistant', label: 'DineFlow assistant', icon: '✳', planned: true },
-    { id: 'simulation', label: 'What-if simulator', icon: '⌁', planned: true },
-  ] },
-];
-
+const viewByFeature: Record<string, { id: DashboardView; icon: string; group: string; permissions: string[] }> = {
+  MENU_MANAGEMENT: { id: 'menu', icon: '▤', group: 'WORKSPACE', permissions: ['MENU_READ'] },
+  ORDER_MANAGEMENT: { id: 'orders', icon: '▣', group: 'RESTAURANT OPERATIONS', permissions: ['ORDER_READ_ACTIVE'] },
+  KITCHEN_DISPLAY: { id: 'kitchen', icon: '◷', group: 'RESTAURANT OPERATIONS', permissions: ['ORDER_READ_ACTIVE'] },
+  WAITER_OPERATIONS: { id: 'waiter', icon: '♧', group: 'RESTAURANT OPERATIONS', permissions: ['ORDER_CREATE', 'ORDER_READ_ACTIVE'] },
+  TABLE_QR_MANAGEMENT: { id: 'tables', icon: '▦', group: 'RESTAURANT OPERATIONS', permissions: ['TABLE_MANAGE'] },
+  CASHIER_OPERATIONS: { id: 'payments', icon: '＄', group: 'RESTAURANT OPERATIONS', permissions: ['PAYMENT_PROCESS', 'ORDER_READ_ACTIVE'] },
+  ANALYTICS: { id: 'revenue', icon: '↗', group: 'RESTAURANT ANALYTICS', permissions: ['TABLE_REVENUE_READ'] },
+};
 export default function AppShell({ user, activeView, onNavigate, onLogout, children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const primaryRole = user.roles?.[0]?.replaceAll('_', ' ') ?? 'TEAM MEMBER';
-  const initials = (user.email?.slice(0, 1) ?? 'D').toUpperCase();
-  const canReadRevenue = user.roles?.includes('SUPER_ADMIN') || user.privileges?.includes('TABLE_REVENUE_READ');
+  const { accessContext, accessLoading, accessError, refreshAccessContext } = useAuth();
+  const role = accessContext?.role ?? 'TEAM MEMBER';
+  const primaryRole = role.replaceAll('_', ' ');
+  const email = accessContext?.email ?? user.email ?? 'Restaurant team member';
+  const restaurantIdentity = accessContext?.restaurantName || accessContext?.restaurantId || 'Restaurant workspace';
+  const initials = email.slice(0, 1).toUpperCase();
+  const availableItems = (accessContext?.navigation ?? [])
+    .map((item) => {
+      const metadata = viewByFeature[item.featureKey];
+      const permissionsGranted = metadata?.permissions.every((permission) => accessContext?.permissions.includes(permission));
+      return metadata && permissionsGranted
+        ? { id: metadata.id, icon: metadata.icon, group: metadata.group, label: item.label }
+        : null;
+    })
+    .filter((item): item is { id: DashboardView; icon: string; group: string; label: string } => item !== null);
+  const sections = [
+    { group: 'WORKSPACE', items: [
+      { id: 'overview' as const, label: 'Overview', icon: '◫' },
+      ...(role === 'RESTAURANT_ADMIN' && accessContext?.permissions.includes('STAFF_MANAGE')
+        ? [{ id: 'admin' as const, label: 'Administration', icon: '⚙' }]
+        : []),
+    ] },
+    ...Array.from(new Set(availableItems.map((item) => item.group))).map((group) => ({
+      group,
+      items: availableItems.filter((item) => item.group === group),
+    })),
+  ];
+  const activeLabel = activeView === 'overview'
+    ? 'Overview'
+    : activeView === 'admin'
+      ? 'Administration'
+    : availableItems.find((item) => item.id === activeView)?.label ?? 'Dashboard';
 
   const navigate = (view: DashboardView) => {
+    void refreshAccessContext();
     onNavigate(view);
     setMobileOpen(false);
   };
@@ -50,20 +70,20 @@ export default function AppShell({ user, activeView, onNavigate, onLogout, child
       <aside className={`df-sidebar ${mobileOpen ? 'is-open' : ''}`}>
         <button className="df-brand" onClick={() => navigate('overview')} aria-label="DineFlow home">
           <span className="df-brand-mark">d<span>.</span></span>
-          <span><strong>dineflow</strong><small>RESTAURANT OS</small></span>
+          <span><strong>DineFlow</strong><small>RESTAURANT WORKSPACE</small></span>
         </button>
 
         <div className="df-location-chip">
           <span className="df-location-dot" />
-          <span><small>YOUR RESTAURANT</small><strong>{user.restaurantId || 'Guest session'}</strong></span>
-          <span className="df-chevron">⌄</span>
+          <span><small>AUTHORIZED RESTAURANT</small><strong>{restaurantIdentity}</strong></span>
+          <span className="df-chevron" aria-hidden="true">⌄</span>
         </div>
 
         <nav className="df-nav" aria-label="Dashboard navigation">
-          {navigation.map((section) => (
+          {sections.map((section) => (
             <div className="df-nav-section" key={section.group}>
               <p className="df-nav-label">{section.group}</p>
-              {section.items.filter((item) => item.id !== 'revenue' || canReadRevenue).map((item) => (
+              {section.items.map((item) => (
                 <button
                   key={item.id}
                   className={`df-nav-item ${activeView === item.id ? 'active' : ''}`}
@@ -72,21 +92,19 @@ export default function AppShell({ user, activeView, onNavigate, onLogout, child
                 >
                   <span className="df-nav-icon">{item.icon}</span>
                   <span>{item.label}</span>
-                  {item.planned && <span className="df-nav-soon">SOON</span>}
                 </button>
               ))}
             </div>
           ))}
+          {!accessLoading && !accessError && availableItems.length === 0 && (
+            <p className="df-nav-empty">No restaurant modules are currently available.</p>
+          )}
         </nav>
 
         <div className="df-sidebar-bottom">
-          <button className={`df-nav-item ${activeView === 'api-routes' ? 'active' : ''}`} onClick={() => navigate('api-routes')}>
-            <span className="df-nav-icon">⌘</span><span>API route map</span>
-          </button>
-          <div className="df-sidebar-help"><span>✦</span><div><strong>Need a hand?</strong><small>Visit the DineFlow guide</small></div><b>↗</b></div>
           <div className="df-profile">
             <span className="df-avatar">{initials}</span>
-            <span className="df-profile-copy"><strong>{user.email || 'Restaurant guest'}</strong><small>{primaryRole}</small></span>
+            <span className="df-profile-copy"><strong>{accessContext?.displayName || email}</strong><small>{primaryRole}</small></span>
             <button className="df-logout" onClick={onLogout} title="Sign out" aria-label="Sign out">↗</button>
           </div>
         </div>
@@ -95,16 +113,23 @@ export default function AppShell({ user, activeView, onNavigate, onLogout, child
       <div className="df-main-column">
         <header className="df-topbar">
           <button className="df-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation">☰</button>
-          <div className="df-breadcrumb"><span>Restaurant</span><b>/</b><strong>{navigation.flatMap((group) => group.items).find((item) => item.id === activeView)?.label ?? 'Dashboard'}</strong></div>
+          <div className="df-breadcrumb"><span>{restaurantIdentity}</span><b>/</b><strong>{activeLabel}</strong></div>
           <div className="df-top-actions">
-            <div className="df-live-status"><span /> Menu workspace</div>
-            <button className="df-icon-button" aria-label="Notifications">♧<i /></button>
+            <div className="df-live-status"><span /> {primaryRole}</div>
+            <button
+              className="df-icon-button"
+              aria-label="Refresh access"
+              title={accessError || 'Refresh permissions'}
+              disabled={accessLoading}
+              onClick={() => void refreshAccessContext()}
+            >↻</button>
             <span className="df-top-divider" />
             <span className="df-date-label">{new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())}</span>
           </div>
         </header>
+        {accessError && <div className="df-access-warning" role="alert">Your latest permissions could not be refreshed: {accessError}</div>}
         <main className="df-page-content">{children}</main>
-        <footer className="df-app-footer"><span>© {new Date().getFullYear()} DineFlow</span><span>Restaurant operations, thoughtfully connected</span><span>Restaurant workspace</span></footer>
+        <footer className="df-app-footer"><span>© {new Date().getFullYear()} DineFlow</span><span>Restaurant operations, thoughtfully connected</span><span>{restaurantIdentity}</span></footer>
       </div>
     </div>
   );

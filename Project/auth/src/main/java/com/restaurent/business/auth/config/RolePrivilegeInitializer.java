@@ -12,6 +12,7 @@ import com.restaurent.business.auth.entities.Privilege;
 import com.restaurent.business.auth.entities.Role;
 import com.restaurent.business.auth.repos.PrivilegeRepository;
 import com.restaurent.business.auth.repos.RoleRepository;
+import com.restaurent.business.auth.services.AuthorizationVersionService;
 
 import jakarta.transaction.Transactional;
 
@@ -23,6 +24,9 @@ public class RolePrivilegeInitializer implements CommandLineRunner {
 
     @Autowired
     private PrivilegeRepository privilegeRepository;
+
+    @Autowired
+    private AuthorizationVersionService authorizationVersionService;
 
     @Override
     @Transactional
@@ -52,7 +56,7 @@ public class RolePrivilegeInitializer implements CommandLineRunner {
 
         createRoleIfNotFound("RESTAURANT_ADMIN", new HashSet<>(Arrays.asList(
                 menuRead, menuCreate, menuUpdate, menuToggleAvail,
-                orderCreate, orderReadActive, orderCancel,
+                orderCreate, orderReadActive, orderUpdateStatus, orderCancel,
                 paymentProcess, paymentRefund,
                 tableManage, staffManage, tableRevenueRead
         )));
@@ -86,12 +90,16 @@ public class RolePrivilegeInitializer implements CommandLineRunner {
         return roleRepository.findByName(name).map(role -> {
             // Update privileges if role already exists but has different privileges
             role.setPrivileges(privileges);
-            return roleRepository.save(role);
+            Role saved = roleRepository.save(role);
+            authorizationVersionService.invalidate("ROLE", Integer.toString(saved.getId()));
+            return saved;
         }).orElseGet(() -> {
             Role newRole = new Role();
             newRole.setName(name);
             newRole.setPrivileges(privileges);
-            return roleRepository.save(newRole);
+            Role saved = roleRepository.save(newRole);
+            authorizationVersionService.invalidate("ROLE", Integer.toString(saved.getId()));
+            return saved;
         });
     }
 }

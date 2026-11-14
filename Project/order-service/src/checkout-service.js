@@ -82,7 +82,7 @@ function createCheckoutService({ catalog, repository, sessionStore, redisPublish
       const lines = [];
       let subtotalCents = 0;
       for (const requested of body.items) {
-        const product = await catalog.getProductDetails(requested.productId);
+        const product = await catalog.getProductDetails(requested.productId, claims.restaurantId);
         if (!product || product.restaurantId !== claims.restaurantId || product.status !== "ACTIVE" || product.isAvailable !== true || product.category?.isActive !== true) {
           throw new CheckoutError("One or more menu items are unavailable", 409, "MENU_ITEM_UNAVAILABLE");
         }

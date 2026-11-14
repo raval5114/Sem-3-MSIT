@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-scdp_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scdp_password}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -36,7 +36,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@dineflow.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
@@ -49,7 +49,7 @@ services:
     container_name: scdp-mongo
     restart: always
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo_data:/data/db
     networks:
@@ -60,7 +60,7 @@ services:
     container_name: scdp-redis
     restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -76,7 +76,7 @@ services:
       dockerfile: Dockerfile
     container_name: scdp-auth-svc
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
     restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/${POSTGRES_DB:-scdp_db}
@@ -85,10 +85,12 @@ services:
       JWT_KEY_DIR: /var/lib/dineflow/auth-keys
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
+      DINEFLOW_ADMIN_SEED_PATH: /run/secrets/admin.seed
       # Customer links embedded in table QR codes must use an address reachable from phones.
       DINEFLOW_CUSTOMER_BASE_URL: ${DINEFLOW_CUSTOMER_BASE_URL:-http://192.168.137.1:3000}
     volumes:
       - auth_jwt_keys:/var/lib/dineflow/auth-keys
+      - ./auth/admin.seed:/run/secrets/admin.seed:ro
     depends_on:
       - postgres-db
       - redis-cache
@@ -101,7 +103,7 @@ services:
       dockerfile: Dockerfile
     container_name: scdp-menu-svc
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     restart: always
     environment:
       PORT: 3001
@@ -111,10 +113,13 @@ services:
       PG_URI: postgresql://${POSTGRES_USER:-scdp_user}:${POSTGRES_PASSWORD:-scdp_password}@postgres-db:5432/${POSTGRES_DB:-scdp_db}
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
+      AUTH_SERVICE_URL: http://auth-service:8081
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
     depends_on:
       - postgres-db
       - mongo-db
       - redis-cache
+      - auth-service
     networks:
       - scdp-network
 
@@ -124,7 +129,7 @@ services:
       dockerfile: Dockerfile
     container_name: scdp-order-svc
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     restart: always
     environment:
       PORT: 3002
@@ -132,10 +137,12 @@ services:
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
       AUTH_JWKS_URL: http://auth-service:8081/.well-known/jwks.json
+      AUTH_SERVICE_URL: http://auth-service:8081
       MENU_SERVICE_URL: http://menu-service:3001
     depends_on:
       - postgres-db
       - redis-cache
+      - auth-service
     networks:
       - scdp-network
 
@@ -145,14 +152,17 @@ services:
       dockerfile: Dockerfile
     container_name: scdp-notif-svc
     ports:
-      - "3004:3004"
+      - "127.0.0.1:3004:3004"
     restart: always
     environment:
       PORT: 3004
       REDIS_HOST: redis-cache
       REDIS_PORT: 6379
+      AUTH_JWKS_URL: http://auth-service:8081/.well-known/jwks.json
+      AUTH_SERVICE_URL: http://auth-service:8081
     depends_on:
       - redis-cache
+      - auth-service
     networks:
       - scdp-network
 
@@ -162,13 +172,22 @@ services:
       dockerfile: Dockerfile
     container_name: scdp-payment-svc
     ports:
-      - "3003:3003"
+      - "127.0.0.1:3003:3003"
     restart: always
     environment:
       PORT: 3003
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-sandbox}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      REDIS_HOST: redis-cache
+      REDIS_PORT: 6379
       POSTGRES_URI: postgresql://${POSTGRES_USER:-scdp_user}:${POSTGRES_PASSWORD:-scdp_password}@postgres-db:5432/${POSTGRES_DB:-scdp_db}
+      AUTH_JWKS_URL: http://auth-service:8081/.well-known/jwks.json
+      AUTH_SERVICE_URL: http://auth-service:8081
     depends_on:
       - postgres-db
+      - auth-service
     networks:
       - scdp-network
 

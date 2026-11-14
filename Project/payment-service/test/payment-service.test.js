@@ -16,8 +16,10 @@ const staffClaims = {
   sub: "admin_1",
   type: "STAFF",
   restaurantId: "rest_1",
+  roles: ["RESTAURANT_ADMIN"],
   privileges: ["PAYMENT_PROCESS", "PAYMENT_REFUND"],
 };
+const cashierClaims = { ...staffClaims, sub: "cashier_1", roles: ["CASHIER"] };
 
 function fixture(overrides = {}) {
   const provider = new SandboxProvider();
@@ -57,6 +59,31 @@ function fixture(overrides = {}) {
     async createPayment(payment) {
       savedPayment = { ...payment, id: payment.id || "pay_rec_1", status: "PENDING" };
       return savedPayment;
+    },
+    async captureCashPayment({ orderId, restaurantId, cashierId, idempotencyKey }) {
+      if (savedPayment && savedPayment.status === "CAPTURED" && savedPayment.idempotencyKey === idempotencyKey) {
+        return { payment: savedPayment, order: orderState, alreadyRecorded: true };
+      }
+      if (orderState.paymentStatus === "PAID") {
+        const error = new Error("This order is already settled");
+        error.status = 409;
+        error.code = "ORDER_ALREADY_PAID";
+        throw error;
+      }
+      savedPayment = {
+        id: "cash_pay_1",
+        orderId,
+        restaurantId,
+        amount: orderState.total,
+        currency: orderState.currency,
+        status: "CAPTURED",
+        paymentMethod: "CASH",
+        idempotencyKey,
+        metadata: { cashierId },
+      };
+      orderState.paymentStatus = "PAID";
+      orderState.status = "PENDING_KITCHEN";
+      return { payment: savedPayment, order: orderState, alreadyRecorded: false };
     },
     async capturePaymentAndReleaseOrder({ paymentId, orderId, providerPaymentId, metadata }) {
       if (savedPayment) {
@@ -201,6 +228,79 @@ test("verifyPayment: rejects invalid cryptographic signature and marks payment F
   assert.equal(getOrderState().paymentStatus, "PENDING"); // Order remains unpaid
 });
 
+test("verifyPayment: a failed intent cannot later settle an order", async () => {
+  const { service } = fixture();
+  const intent = await service.createIntent(customerClaims, { orderId: "ord_1" });
+  await assert.rejects(service.verifyPayment(customerClaims, {
+    orderId: "ord_1",
+    paymentId: intent.paymentId,
+    providerPaymentId: "pay_test_001",
+    providerOrderId: intent.providerOrderId,
+    signature: "invalid",
+  }));
+  await assert.rejects(
+    service.verifyPayment(customerClaims, {
+      orderId: "ord_1",
+      paymentId: intent.paymentId,
+      providerPaymentId: "pay_test_001",
+      providerOrderId: intent.providerOrderId,
+      signature: "still-invalid",
+    }),
+    (error) => error.code === "PAYMENT_NOT_PENDING" && error.status === 409
+  );
+});
+
+test("recordCashPayment requires staff payment permission and records authenticated cashier", async () => {
+  const { service, getSavedPayment, getOrderState, getPublishedEvents } = fixture();
+  const result = await service.recordCashPayment(cashierClaims, {
+    orderId: "ord_1",
+    idempotencyKey: "cash-request-1",
+  });
+  assert.equal(result.status, "PAID");
+  assert.equal(result.paymentMethod, "CASH");
+  assert.equal(getOrderState().paymentStatus, "PAID");
+  assert.equal(getSavedPayment().metadata.cashierId, cashierClaims.sub);
+  assert.equal(getPublishedEvents()[0].message.paymentMethod, "CASH");
+  await assert.rejects(
+    service.recordCashPayment(customerClaims, { orderId: "ord_1", idempotencyKey: "cash-request-2" }),
+    (error) => error.code === "STAFF_TOKEN_REQUIRED" && error.status === 403
+  );
+  await assert.rejects(
+    service.recordCashPayment({
+      ...staffClaims,
+      roles: ["WAITER"],
+    }, { orderId: "ord_1", idempotencyKey: "cash-request-3" }),
+    (error) => error.code === "STAFF_TOKEN_REQUIRED" && error.status === 403
+  );
+});
+
+test("recordCashPayment returns an idempotent result on a retried request", async () => {
+  const { service } = fixture();
+  const request = { orderId: "ord_1", idempotencyKey: "cash-request-1" };
+  const first = await service.recordCashPayment(cashierClaims, request);
+  const retry = await service.recordCashPayment(cashierClaims, request);
+  assert.equal(first.paymentId, retry.paymentId);
+  assert.equal(retry.alreadyRecorded, true);
+});
+
+test("verifyPayment: prevents a different table session from verifying a payment", async () => {
+  const { service, provider } = fixture();
+  const intent = await service.createIntent(customerClaims, { orderId: "ord_1" });
+  const providerPaymentId = "pay_test_002";
+  const signature = provider.generateSignature(intent.providerOrderId, providerPaymentId);
+
+  await assert.rejects(
+    service.verifyPayment({ ...customerClaims, tableSessionId: "another-session" }, {
+      orderId: "ord_1",
+      paymentId: intent.paymentId,
+      providerPaymentId,
+      providerOrderId: intent.providerOrderId,
+      signature,
+    }),
+    (error) => error.code === "CROSS_SESSION_FORBIDDEN" && error.status === 403
+  );
+});
+
 test("handleWebhook: processes payment.captured event idempotently", async () => {
   const { service, provider, getSavedPayment, getOrderState } = fixture();
   const intent = await service.createIntent(customerClaims, { orderId: "ord_1" });
@@ -265,4 +365,3 @@ test("refundPayment: processes staff refund when staff has PAYMENT_REFUND privil
     (err) => err.code === "PERMISSION_DENIED" && err.status === 403
   );
 });
-

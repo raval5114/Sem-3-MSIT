@@ -44,6 +44,7 @@ const allergenRoutes = require(
 const customerCatalogRoutes = require(
   "./routes/customer-catalog.routes"
 );
+const { requireMenuAccess } = require("./src/effective-access");
 
 /*
 |--------------------------------------------------------------------------
@@ -62,9 +63,15 @@ const PORT =
 |--------------------------------------------------------------------------
 */
 
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000,http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(cors({ origin: allowedOrigins }));
 
-app.use(express.json());
+// Food image uploads are resized in the dashboard before being stored with
+// the restaurant-scoped product record.
+app.use(express.json({ limit: "5mb" }));
 
 app.use(express.urlencoded({
   extended: true,
@@ -147,31 +154,37 @@ app.get("/", (req, res) => {
 
 app.use(
   "/api/v1/menu/categories",
+  requireMenuAccess(),
   categoryRoutes
 );
 
 app.use(
   "/api/v1/menu/products",
+  requireMenuAccess(),
   productRoutes
 );
 
 app.use(
   "/api/v1/menu/variants",
+  requireMenuAccess(),
   variantRoutes
 );
 
 app.use(
   "/api/v1/menu/modifier-groups",
+  requireMenuAccess(),
   modifierGroupRoutes
 );
 
 app.use(
   "/api/v1/menu/ingredients",
+  requireMenuAccess(),
   ingredientRoutes
 );
 
 app.use(
   "/api/v1/menu/allergens",
+  requireMenuAccess(),
   allergenRoutes
 );
 

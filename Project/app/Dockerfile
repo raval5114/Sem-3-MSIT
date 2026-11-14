@@ -8,7 +8,7 @@ RUN npm ci --ignore-scripts
 COPY . .
 
 # VITE_AUTH_BASE_URL is injected at build time so the PWA knows where to call auth-service
-ARG VITE_AUTH_BASE_URL=http://localhost/api/auth
+ARG VITE_AUTH_BASE_URL=/api/auth
 ENV VITE_AUTH_BASE_URL=$VITE_AUTH_BASE_URL
 
 RUN npm run build

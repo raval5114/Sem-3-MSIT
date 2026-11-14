@@ -1,0 +1,156 @@
+/* Shared visual system for staff, kitchen and guest experiences. */
+:root {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  color: #26352c;
+  background: #f5f7f4;
+  font-size: 15px;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --brand: #286a46;
+  --brand-strong: #20583a;
+  --brand-soft: #eaf4ed;
+  --surface: #fff;
+  --canvas: #f5f7f4;
+  --text: #26352c;
+  --text-muted: #718078;
+  --line: #e3eae4;
+  --radius-card: 14px;
+  --shadow-card: 0 8px 24px rgb(32 58 39 / 5%);
+}
+
+body { background: var(--canvas); color: var(--text); }
+button, input, select, textarea { font-family: inherit; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled) { transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid #72ad86;
+  outline-offset: 3px;
+}
+::selection { color: #173c27; background: #d8eddd; }
+
+/* Staff workspace */
+.df-app { --ink: #26352c; --muted: #718078; --line: #e3eae4; --green: #286a46; background: var(--canvas); font-size: 15px; }
+.df-sidebar { background: #fff; border-color: var(--line); box-shadow: 8px 0 30px rgb(32 58 39 / 2%); }
+.df-brand-mark { background: var(--brand); }
+.df-nav-item { min-height: 43px; font-size: 13px; border-radius: 9px; }
+.df-nav-item.active { background: var(--brand-soft); color: var(--brand); }
+.df-nav-label { font-size: 10px; }
+.df-location-chip { background: #fbfcfb; }
+.df-location-chip small { font-size: 9px; }
+.df-location-chip strong { font-size: 12px; }
+.df-profile-copy strong { font-size: 12px; }
+.df-profile-copy small { font-size: 10px; }
+.df-topbar { background: rgb(255 255 255 / 94%); }
+.df-breadcrumb, .df-top-actions { font-size: 12px; }
+.df-page-content { padding-top: 38px; }
+.df-page-heading h1 { color: #26352c; letter-spacing: -1px; }
+.df-eyebrow { font-size: 10px; }
+.df-page-description { color: #718078; font-size: 14px; line-height: 1.65; }
+.df-button { min-height: 40px; padding-inline: 16px; font-size: 13px; border-radius: 9px; }
+.df-button-primary { background: var(--brand); border-color: var(--brand); }
+.df-button-primary:hover { background: var(--brand-strong); }
+.df-stat-card, .df-panel, .df-quick-grid > button, .df-coming-soon { border-color: var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
+.df-stat-card { min-height: 122px; padding: 20px; }
+.df-stat-copy > span { color: var(--text-muted); font-size: 12px; }
+.df-stat-copy strong { font-size: 27px; }
+.df-stat-copy small { font-size: 11px; }
+.df-panel-heading { min-height: 72px; padding-inline: 22px; }
+.df-panel-heading h2 { font-size: 16px; }
+.df-table th { font-size: 10px; letter-spacing: .85px; }
+.df-table td { font-size: 13px; }
+.df-table td strong { font-size: 13px; }
+.df-table td small { font-size: 11px; }
+.df-pill { font-size: 10px; }
+.df-empty { font-size: 13px; }
+.df-empty strong { font-size: 15px; }
+.df-empty p { font-size: 12px; }
+.df-quick-grid strong { font-size: 13px; }
+.df-quick-grid small { font-size: 11px; }
+.df-tabs button { font-size: 13px; }
+.df-inline-form { padding: 22px; }
+.df-form-heading h3 { font-size: 16px; }
+.df-form-grid label { color: #56665b; font-size: 12px; }
+.df-form-grid input, .df-form-grid select { height: 42px; font-size: 14px; }
+.df-form-grid textarea { font-size: 13px; }
+.df-alert, .df-form-error { font-size: 12px; }
+.df-app-footer { color: #78867d; font-size: 11px; }
+.df-qr-content p { font-size: 13px; }
+.df-customer-session-card, .df-order-confirmation, .df-order-notice { border-color: var(--line); border-radius: 18px; box-shadow: 0 18px 50px rgb(25 49 32 / 8%); }
+
+/* Sign in and registration */
+.auth-page { background: #f3f6f2; }
+.auth-card { border-color: var(--line); border-radius: 18px; box-shadow: 0 18px 55px rgb(25 49 32 / 9%); }
+.auth-heading { letter-spacing: -.7px; }
+.auth-description { color: #718078; font-size: 14px; line-height: 1.65; }
+.auth-kicker { font-size: 11px; }
+.form-group label { color: #526257; font-size: 13px; }
+.form-group input, .form-group select { min-height: 44px; border-color: #dfe7e0; border-radius: 9px; font-size: 14px; }
+.auth-btn { min-height: 44px; border-radius: 9px; font-size: 13px; }
+.auth-error, .auth-success { border-radius: 9px; font-size: 13px; }
+
+/* Guest ordering */
+.df-order-page { background: #f5f7f4; }
+.df-order-header { height: 74px; border-color: var(--line); box-shadow: 0 3px 14px rgb(32 58 39 / 3%); }
+.df-order-header > div span { font-size: 12px; }
+.df-order-header > div small { font-size: 10px; }
+.df-order-layout { gap: 32px; }
+.df-order-eyebrow { font-size: 10px; }
+.df-menu-welcome h1 { font-size: clamp(27px, 3vw, 34px); letter-spacing: -.8px; }
+.df-menu-welcome > p:last-child, .df-order-confirmation > p, .df-order-notice > p { color: #718078; font-size: 14px; }
+.df-menu-categories button { padding: 10px 16px; font-size: 12px; }
+.df-customer-product, .df-cart-panel { border-color: var(--line); border-radius: 14px; box-shadow: var(--shadow-card); }
+.df-customer-product { padding: 20px; }
+.df-customer-product-title h2 { font-size: 17px; }
+.df-customer-product-title strong { font-size: 14px; }
+.df-customer-product-copy > p { color: #718078; font-size: 13px; line-height: 1.65; }
+.df-customer-product-meta span { font-size: 10px; }
+.df-order-add, .df-order-button { min-height: 40px; padding-inline: 14px; font-size: 12px; border-radius: 8px; }
+.df-cart-heading h2 { font-size: 17px; }
+.df-cart-empty { font-size: 12px; }
+.df-cart-line strong { font-size: 13px; }
+.df-cart-line small { font-size: 10px; }
+.df-cart-line b { font-size: 12px; }
+.df-option-row { font-size: 12px; }
+.df-customize-heading h2 { font-size: 20px; }
+
+/* Kitchen display */
+.kds-shell { background: #f3f6f2; }
+.kds-topbar { border-color: var(--line); box-shadow: 0 3px 14px rgb(32 58 39 / 3%); }
+.kds-content { padding-top: 44px; }
+.kds-summary-card, .kds-ticket { border-color: var(--line); border-radius: 14px; box-shadow: var(--shadow-card); }
+.kds-ticket { padding: 19px; }
+.kds-ticket-label, .kds-items-heading { font-size: 9px; }
+.kds-ticket-meta { font-size: 11px; }
+.kds-item-copy strong { font-size: 14px; }
+.kds-item-copy span { font-size: 11px; }
+.kds-primary-action, .kds-cancel-action { min-height: 41px; font-size: 12px; }
+
+/* Platform administration */
+.df-platform-shell { background: #f5f7f4; }
+.df-platform-shell { --platform-ink: #26352c; --platform-muted: #718078; --platform-line: #e3eae4; --platform-orange: #b96935; }
+.df-platform-sidebar { background: #fff; }
+.df-platform-nav-item { min-height: 42px; font-size: 13px; border-radius: 9px; }
+.df-platform-sidebar-label, .df-platform-eyebrow { font-size: 10px; }
+.df-platform-admin-card strong { font-size: 12px; }
+.df-platform-admin-card small { font-size: 10px; }
+.df-platform-topbar { background: #fff; }
+.df-platform-content { padding-top: 40px; }
+.df-platform-panel, .df-platform-form-card, .df-subscription-plan-card { border-radius: 14px; box-shadow: var(--shadow-card); }
+.df-platform-panel-header { min-height: 68px; }
+.df-platform-table th { font-size: 10px; }
+.df-platform-table td { font-size: 13px; }
+.df-platform-button { min-height: 40px; font-size: 12px; border-radius: 9px; }
+.df-platform-search input, .df-platform-filters select, .df-platform-form input, .df-platform-form select, .df-subscription-form input, .df-subscription-form select { min-height: 42px; font-size: 14px; }
+.df-platform-empty { font-size: 13px; }
+
+@media (max-width: 760px) {
+  .df-page-content { padding-top: 28px; }
+  .df-order-header { height: 66px; }
+  .df-customer-product-title h2 { font-size: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

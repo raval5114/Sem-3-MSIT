@@ -1,7 +1,13 @@
 const ModifierGroup = require("../models/modifier.model");
+const Product = require("../models/products.model");
 
 const createModifierGroup = async (data) => {
   try {
+    const product = await Product.findOne({
+      _id: data.productId,
+      restaurantId: data.restaurantId,
+    });
+    if (!product) throw new Error("Product does not belong to this restaurant");
     return await ModifierGroup.create(data);
   } catch (error) {
     if (error.code === 11000) {
@@ -20,14 +26,25 @@ const getModifierGroups = async (filters = {}) => {
   });
 };
 
-const getModifierGroupById = async (id) => {
-  return await ModifierGroup.findById(id);
+const getModifierGroupById = async (id, restaurantId) => {
+  return restaurantId
+    ? await ModifierGroup.findOne({ _id: id, restaurantId })
+    : await ModifierGroup.findById(id);
 };
 
-const updateModifierGroup = async (id, data) => {
+const updateModifierGroup = async (id, data, restaurantId) => {
   try {
-    return await ModifierGroup.findByIdAndUpdate(
-      id,
+    if (restaurantId) {
+      const current = await ModifierGroup.findOne({ _id: id, restaurantId });
+      if (!current) return null;
+      if (data.restaurantId !== restaurantId) {
+        throw new Error("Modifier group restaurant cannot be changed");
+      }
+      const product = await Product.findOne({ _id: data.productId || current.productId, restaurantId });
+      if (!product) throw new Error("Product does not belong to this restaurant");
+    }
+    return await ModifierGroup.findOneAndUpdate(
+      restaurantId ? { _id: id, restaurantId } : { _id: id },
       data,
       {
         new: true,
@@ -45,8 +62,10 @@ const updateModifierGroup = async (id, data) => {
   }
 };
 
-const deleteModifierGroup = async (id) => {
-  return await ModifierGroup.findByIdAndDelete(id);
+const deleteModifierGroup = async (id, restaurantId) => {
+  return await ModifierGroup.findOneAndDelete(
+    restaurantId ? { _id: id, restaurantId } : { _id: id }
+  );
 };
 
 module.exports = {

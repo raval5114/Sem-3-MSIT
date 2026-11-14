@@ -30,4 +30,27 @@ async function getCustomerCatalog(restaurantId, models = { Category, Product, Va
   }));
 }
 
-module.exports = { getCustomerCatalog };
+async function getCustomerProductDetails(restaurantId, productId, models = { Category, Product, Variant, ModifierGroup }) {
+  const product = await models.Product.findOne({
+    _id: productId,
+    restaurantId,
+    status: "ACTIVE",
+    isAvailable: true,
+  }).lean();
+  if (!product) return null;
+
+  const category = await models.Category.findOne({
+    _id: product.categoryId,
+    restaurantId,
+    isActive: true,
+  }).lean();
+  if (!category) return null;
+
+  const [variants, modifierGroups] = await Promise.all([
+    models.Variant.find({ restaurantId, productId: product._id, isActive: true }).lean(),
+    models.ModifierGroup.find({ restaurantId, productId: product._id, isActive: true }).lean(),
+  ]);
+  return { ...product, category, variants, modifierGroups };
+}
+
+module.exports = { getCustomerCatalog, getCustomerProductDetails };

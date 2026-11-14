@@ -2,8 +2,8 @@ package com.restaurent.business.auth.services;
 
 import com.restaurent.business.auth.entities.Role;
 import com.restaurent.business.auth.repos.RoleRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,11 +11,19 @@ import java.util.Optional;
 @Service
 public class RoleService {
 
-    @Autowired
-    private RoleRepository roleRepository;
+    private final RoleRepository roleRepository;
+    private final AuthorizationVersionService authorizationVersionService;
 
+    public RoleService(RoleRepository roleRepository, AuthorizationVersionService authorizationVersionService) {
+        this.roleRepository = roleRepository;
+        this.authorizationVersionService = authorizationVersionService;
+    }
+
+    @Transactional
     public Role createRole(Role role) {
-        return roleRepository.save(role);
+        Role saved = roleRepository.save(role);
+        authorizationVersionService.invalidate("ROLE", Integer.toString(saved.getId()));
+        return saved;
     }
 
     public List<Role> getAllRoles() {
@@ -26,15 +34,20 @@ public class RoleService {
         return roleRepository.findById(id);
     }
 
+    @Transactional
     public Role updateRole(int id, Role roleDetails) {
-        return roleRepository.findById(id).map(role -> {
-            role.setName(roleDetails.getName());
-            role.setPrivileges(roleDetails.getPrivileges());
-            return roleRepository.save(role);
-        }).orElseThrow(() -> new RuntimeException("Role not found with id " + id));
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Role not found with id " + id));
+        role.setName(roleDetails.getName());
+        role.setPrivileges(roleDetails.getPrivileges());
+        Role saved = roleRepository.save(role);
+        authorizationVersionService.invalidate("ROLE", Integer.toString(id));
+        return saved;
     }
 
+    @Transactional
     public void deleteRole(int id) {
         roleRepository.deleteById(id);
+        authorizationVersionService.invalidate("ROLE", Integer.toString(id));
     }
 }

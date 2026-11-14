@@ -9,6 +9,15 @@ class PaymentError extends Error {
 }
 
 function createPaymentService({ provider, repository, sessionStore, redisPublisher, idFactory = crypto.randomUUID }) {
+  const normalizePaymentMethod = (method) => ({
+    upi: "UPI",
+    card: "CARD",
+    netbanking: "NETBANKING",
+    wallet: "WALLET",
+    emi: "EMI",
+    paylater: "PAY_LATER",
+  }[String(method || "").toLowerCase()] || "ONLINE");
+
   return {
     async createIntent(claims, { orderId }) {
       if (!claims || !claims.restaurantId) {
@@ -111,6 +120,16 @@ function createPaymentService({ provider, repository, sessionStore, redisPublish
       if (!payment) {
         throw new PaymentError("Payment intent record not found for this order", 404, "PAYMENT_NOT_FOUND");
       }
+      if (payment.restaurantId !== claims.restaurantId) {
+        throw new PaymentError("Payment record not found for this restaurant", 404, "PAYMENT_NOT_FOUND");
+      }
+      if (payment.orderId !== orderId) {
+        throw new PaymentError("Payment record not found for this order", 404, "PAYMENT_NOT_FOUND");
+      }
+      if (claims.type === "CUSTOMER" &&
+          (!claims.tableSessionId || payment.tableSessionId !== claims.tableSessionId)) {
+        throw new PaymentError("Payment does not belong to your table session", 403, "CROSS_SESSION_FORBIDDEN");
+      }
 
       if (payment.status === "CAPTURED") {
         return {
@@ -120,6 +139,9 @@ function createPaymentService({ provider, repository, sessionStore, redisPublish
           orderStatus: "PENDING_KITCHEN",
           alreadyCaptured: true,
         };
+      }
+      if (payment.status !== "PENDING") {
+        throw new PaymentError("This payment intent is no longer pending", 409, "PAYMENT_NOT_PENDING");
       }
 
       const validSignature = provider.verifyPaymentSignature({
@@ -133,11 +155,29 @@ function createPaymentService({ provider, repository, sessionStore, redisPublish
         throw new PaymentError("Payment signature verification failed", 400, "PAYMENT_VERIFICATION_FAILED");
       }
 
+      let gatewayPayment = null;
+      if (typeof provider.fetchPayment === "function") {
+        gatewayPayment = await provider.fetchPayment(providerPaymentId);
+        if (gatewayPayment.order_id !== payment.providerOrderId
+            || Number(gatewayPayment.amount) !== Math.round(payment.amount * 100)
+            || gatewayPayment.currency !== payment.currency) {
+          throw new PaymentError("The gateway payment does not match this order.", 409, "PAYMENT_DETAILS_MISMATCH");
+        }
+        if (gatewayPayment.status !== "captured") {
+          throw new PaymentError("Payment has not been captured yet. Please wait or try another method.", 409, "PAYMENT_NOT_CAPTURED");
+        }
+      }
+
       const result = await repository.capturePaymentAndReleaseOrder({
         paymentId: payment.id,
         orderId: payment.orderId,
+        restaurantId: payment.restaurantId,
         providerPaymentId: providerPaymentId || `pay_${crypto.randomUUID()}`,
-        metadata: { verifiedAt: new Date().toISOString() },
+        paymentMethod: gatewayPayment ? normalizePaymentMethod(gatewayPayment.method) : undefined,
+        metadata: {
+          verifiedAt: new Date().toISOString(),
+          ...(gatewayPayment ? { gatewayMethod: gatewayPayment.method } : {}),
+        },
       });
 
       if (redisPublisher && typeof redisPublisher.publish === "function") {
@@ -166,6 +206,48 @@ function createPaymentService({ provider, repository, sessionStore, redisPublish
       };
     },
 
+    async recordCashPayment(claims, { orderId, idempotencyKey }) {
+      if (claims?.type !== "STAFF" || !claims.restaurantId || !claims.sub
+          || !claims.roles?.some((role) => ["CASHIER", "RESTAURANT_ADMIN"].includes(role))) {
+        throw new PaymentError("An authenticated cashier session is required", 403, "STAFF_TOKEN_REQUIRED");
+      }
+      if (!claims.privileges?.includes("PAYMENT_PROCESS")) {
+        throw new PaymentError("Cashier payment permission is required", 403, "PERMISSION_DENIED");
+      }
+      if (!orderId || !idempotencyKey || typeof idempotencyKey !== "string" || idempotencyKey.length > 100) {
+        throw new PaymentError("orderId and a valid idempotencyKey are required", 400, "MISSING_PAYMENT_DATA");
+      }
+      const result = await repository.captureCashPayment({
+        orderId,
+        restaurantId: claims.restaurantId,
+        cashierId: claims.sub,
+        idempotencyKey,
+      });
+      if (redisPublisher && typeof redisPublisher.publish === "function" && !result.alreadyRecorded) {
+        try {
+          await redisPublisher.publish("order_events", JSON.stringify({
+            event: "ORDER_PAID",
+            orderId,
+            restaurantId: claims.restaurantId,
+            tableId: result.order.tableId,
+            tableSessionId: result.order.tableSessionId,
+            amount: result.payment.amount,
+            paymentMethod: "CASH",
+          }));
+        } catch {
+          // Persisted payment state remains authoritative if event publication fails.
+        }
+      }
+      return {
+        paymentId: result.payment.id,
+        orderId,
+        status: "PAID",
+        orderStatus: result.order.status,
+        paymentMethod: "CASH",
+        alreadyRecorded: result.alreadyRecorded,
+      };
+    },
+
     async handleWebhook({ rawBody, signature, payload }) {
       const valid = provider.verifyWebhookSignature({ rawBody, signature });
       if (!valid) {
@@ -186,7 +268,9 @@ function createPaymentService({ provider, repository, sessionStore, redisPublish
           await repository.capturePaymentAndReleaseOrder({
             paymentId: payment.id,
             orderId: payment.orderId,
+            restaurantId: payment.restaurantId,
             providerPaymentId: paymentData.id || `wh_${crypto.randomUUID()}`,
+            paymentMethod: normalizePaymentMethod(paymentData.method),
             metadata: { webhookEvent: event },
           });
         }
@@ -217,6 +301,10 @@ function createPaymentService({ provider, repository, sessionStore, redisPublish
       if (payments[0].restaurantId !== claims.restaurantId) {
         throw new PaymentError("Not authorized to view payments for another restaurant", 403, "FORBIDDEN");
       }
+      if (claims.type === "CUSTOMER" &&
+          (!claims.tableSessionId || payments.some((payment) => payment.tableSessionId !== claims.tableSessionId))) {
+        throw new PaymentError("Payment does not belong to your table session", 403, "CROSS_SESSION_FORBIDDEN");
+      }
       return payments;
     },
 
@@ -242,4 +330,3 @@ function createPaymentService({ provider, repository, sessionStore, redisPublish
 }
 
 module.exports = { PaymentError, createPaymentService };
-

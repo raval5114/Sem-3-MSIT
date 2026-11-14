@@ -17,9 +17,15 @@ public class UserInfoDetails implements UserDetails {
     private final String password;
     private final List<GrantedAuthority> authorities;
     private final UserInfo userInfo;
+    private final boolean enabled;
 
     public UserInfoDetails(UserInfo userInfo) {
+        this(userInfo, userInfo.isActive());
+    }
+
+    public UserInfoDetails(UserInfo userInfo, boolean enabled) {
         this.userInfo = userInfo;
+        this.enabled = enabled;
         this.email = userInfo.getEmail();
         this.password = userInfo.getPassword();
 
@@ -60,7 +66,7 @@ public class UserInfoDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return userInfo.isActive();
+        return enabled;
     }
 
     @Override
@@ -70,6 +76,6 @@ public class UserInfoDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return userInfo.isActive();
+        return enabled;
     }
 }

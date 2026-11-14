@@ -1,7 +1,8 @@
 const express = require("express");
 const { PaymentError } = require("./src/payment-service");
+const { EffectiveAccessClient, EffectiveAccessError } = require("./src/effective-access-client");
 
-function createApp({ verifier, paymentService }) {
+function createApp({ verifier, paymentService, accessClient = new EffectiveAccessClient() }) {
   const app = express();
   app.disable("x-powered-by");
 
@@ -55,6 +56,7 @@ function createApp({ verifier, paymentService }) {
       return res.status(401).json({ success: false, code: "AUTH_REQUIRED", message: "Bearer token required" });
     }
     try {
+      req.accessToken = match[1];
       req.claims = await verifier.verify(match[1]);
       return next();
     } catch (error) {
@@ -65,7 +67,29 @@ function createApp({ verifier, paymentService }) {
     }
   };
 
-  app.post("/create-intent", requireAuth, async (req, res, next) => {
+  const requireEffectivePaymentAccess = (permission) => async (req, res, next) => {
+    if (req.claims.type !== "STAFF") return next();
+    try {
+      const context = await accessClient.authorize({
+        token: req.accessToken,
+        restaurantId: req.claims.restaurantId,
+        featureKey: "CASHIER_OPERATIONS",
+        permission,
+      });
+      req.claims.roles = context.role ? [context.role] : [];
+      req.claims.privileges = context.permissions;
+      return next();
+    } catch (error) {
+      const status = error instanceof EffectiveAccessError ? error.status : 503;
+      return res.status(status).json({
+        success: false,
+        code: error.code || "ACCESS_POLICY_UNAVAILABLE",
+        message: status === 503 ? "Authorization service is temporarily unavailable" : error.message,
+      });
+    }
+  };
+
+  app.post("/create-intent", requireAuth, requireEffectivePaymentAccess("PAYMENT_PROCESS"), async (req, res, next) => {
     try {
       const intent = await paymentService.createIntent(req.claims, req.body);
       return res.status(200).json({ success: true, data: intent });
@@ -74,7 +98,7 @@ function createApp({ verifier, paymentService }) {
     }
   });
 
-  app.post("/verify", requireAuth, async (req, res, next) => {
+  app.post("/verify", requireAuth, requireEffectivePaymentAccess("PAYMENT_PROCESS"), async (req, res, next) => {
     try {
       const result = await paymentService.verifyPayment(req.claims, req.body);
       return res.status(200).json({ success: true, data: result });
@@ -83,7 +107,16 @@ function createApp({ verifier, paymentService }) {
     }
   });
 
-  app.get("/order/:orderId", requireAuth, async (req, res, next) => {
+  app.post("/counter-payment", requireAuth, requireEffectivePaymentAccess("PAYMENT_PROCESS"), async (req, res, next) => {
+    try {
+      const result = await paymentService.recordCashPayment(req.claims, req.body);
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  app.get("/order/:orderId", requireAuth, requireEffectivePaymentAccess("PAYMENT_PROCESS"), async (req, res, next) => {
     try {
       const payments = await paymentService.getPaymentByOrderId(req.claims, req.params.orderId);
       return res.status(200).json({ success: true, data: payments });
@@ -92,7 +125,7 @@ function createApp({ verifier, paymentService }) {
     }
   });
 
-  app.post("/refund", requireAuth, async (req, res, next) => {
+  app.post("/refund", requireAuth, requireEffectivePaymentAccess("PAYMENT_REFUND"), async (req, res, next) => {
     try {
       const result = await paymentService.refundPayment(req.claims, req.body);
       return res.status(200).json({ success: true, data: result });
@@ -114,4 +147,3 @@ function createApp({ verifier, paymentService }) {
 }
 
 module.exports = { createApp };
-

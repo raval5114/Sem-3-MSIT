@@ -176,8 +176,10 @@ const getProducts = async (filters = {}) => {
 |--------------------------------------------------------------------------
 */
 
-const getProductById = async (id) => {
-  return await Product.findById(id);
+const getProductById = async (id, restaurantId) => {
+  return restaurantId
+    ? await Product.findOne({ _id: id, restaurantId })
+    : await Product.findById(id);
 };
 
 /*
@@ -186,9 +188,10 @@ const getProductById = async (id) => {
 |--------------------------------------------------------------------------
 */
 
-const getProductDetails = async (productId) => {
-  const product =
-    await Product.findById(productId).lean();
+const getProductDetails = async (productId, restaurantId) => {
+  const product = restaurantId
+    ? await Product.findOne({ _id: productId, restaurantId }).lean()
+    : await Product.findById(productId).lean();
 
   if (!product) {
     return null;
@@ -199,14 +202,16 @@ const getProductDetails = async (productId) => {
     variants,
     modifierGroups,
   ] = await Promise.all([
-    Category.findById(
-      product.categoryId
-    ).lean(),
+    Category.findOne({
+      _id: product.categoryId,
+      restaurantId: product.restaurantId,
+    }).lean(),
 
     Variant.find({
       _id: {
         $in: product.variantIds || [],
       },
+      restaurantId: product.restaurantId,
       isActive: true,
     })
       .sort({
@@ -218,6 +223,7 @@ const getProductDetails = async (productId) => {
       _id: {
         $in: product.modifierGroupIds || [],
       },
+      restaurantId: product.restaurantId,
       isActive: true,
     })
       .sort({
@@ -250,10 +256,12 @@ const getProductDetails = async (productId) => {
 */
 
 const getProductVariants = async (
-  productId
+  productId,
+  restaurantId
 ) => {
-  const product =
-    await Product.findById(productId).lean();
+  const product = restaurantId
+    ? await Product.findOne({ _id: productId, restaurantId }).lean()
+    : await Product.findById(productId).lean();
 
   if (!product) {
     return null;
@@ -263,6 +271,7 @@ const getProductVariants = async (
     _id: {
       $in: product.variantIds || [],
     },
+    restaurantId: product.restaurantId,
     isActive: true,
   }).sort({
     createdAt: 1,
@@ -278,10 +287,12 @@ const getProductVariants = async (
 */
 
 const getProductModifierGroups = async (
-  productId
+  productId,
+  restaurantId
 ) => {
-  const product =
-    await Product.findById(productId).lean();
+  const product = restaurantId
+    ? await Product.findOne({ _id: productId, restaurantId }).lean()
+    : await Product.findById(productId).lean();
 
   if (!product) {
     return null;
@@ -292,6 +303,7 @@ const getProductModifierGroups = async (
       _id: {
         $in: product.modifierGroupIds || [],
       },
+      restaurantId: product.restaurantId,
       isActive: true,
     }).sort({
       createdAt: 1,
@@ -308,11 +320,13 @@ const getProductModifierGroups = async (
 
 const updateProduct = async (
   id,
-  data
+  data,
+  scopedRestaurantId
 ) => {
   try {
-    const existingProduct =
-      await Product.findById(id);
+    const existingProduct = scopedRestaurantId
+      ? await Product.findOne({ _id: id, restaurantId: scopedRestaurantId })
+      : await Product.findById(id);
 
     if (!existingProduct) {
       return null;
@@ -378,8 +392,8 @@ const updateProduct = async (
       restaurantId
     );
 
-    return await Product.findByIdAndUpdate(
-      id,
+    return await Product.findOneAndUpdate(
+      { _id: id, restaurantId },
       data,
       {
         new: true,
@@ -403,8 +417,10 @@ const updateProduct = async (
 |--------------------------------------------------------------------------
 */
 
-const deleteProduct = async (id) => {
-  return await Product.findByIdAndDelete(id);
+const deleteProduct = async (id, restaurantId) => {
+  return await Product.findOneAndDelete(
+    restaurantId ? { _id: id, restaurantId } : { _id: id }
+  );
 };
 
 /*
@@ -415,10 +431,11 @@ const deleteProduct = async (id) => {
 
 const updateAvailability = async (
   id,
-  isAvailable
+  isAvailable,
+  restaurantId
 ) => {
-  return await Product.findByIdAndUpdate(
-    id,
+  return await Product.findOneAndUpdate(
+    restaurantId ? { _id: id, restaurantId } : { _id: id },
     {
       isAvailable,
     },
@@ -437,10 +454,11 @@ const updateAvailability = async (
 
 const updateStatus = async (
   id,
-  status
+  status,
+  restaurantId
 ) => {
-  return await Product.findByIdAndUpdate(
-    id,
+  return await Product.findOneAndUpdate(
+    restaurantId ? { _id: id, restaurantId } : { _id: id },
     {
       status,
     },

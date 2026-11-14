@@ -100,34 +100,145 @@ function createPaymentRepository(pool) {
       return mapPayment(result.rows[0]);
     },
 
-    async capturePaymentAndReleaseOrder({ paymentId, orderId, providerPaymentId, metadata = {} }) {
+    async captureCashPayment({ orderId, restaurantId, cashierId, idempotencyKey }) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const orderResult = await client.query(
+          "SELECT * FROM dineflow_orders WHERE id=$1 AND restaurant_id=$2 FOR UPDATE",
+          [orderId, restaurantId]
+        );
+        if (!orderResult.rowCount) {
+          const error = new Error("Order not found for this restaurant");
+          error.status = 404;
+          error.code = "ORDER_NOT_FOUND";
+          throw error;
+        }
+
+        const order = orderResult.rows[0];
+        const priorResult = await client.query(
+          "SELECT * FROM dineflow_payments WHERE idempotency_key=$1",
+          [idempotencyKey]
+        );
+        if (priorResult.rowCount) {
+          const prior = mapPayment(priorResult.rows[0]);
+          if (prior.orderId !== orderId || prior.restaurantId !== restaurantId || prior.paymentMethod !== "CASH") {
+            const error = new Error("Idempotency key has already been used");
+            error.status = 409;
+            error.code = "IDEMPOTENCY_KEY_REUSED";
+            throw error;
+          }
+          await client.query("COMMIT");
+          return { payment: prior, order: mapPaymentOrder(order), alreadyRecorded: true };
+        }
+        if (order.payment_status === "PAID" || order.payment_status === "REFUNDED") {
+          const error = new Error("This order is already settled");
+          error.status = 409;
+          error.code = "ORDER_ALREADY_PAID";
+          throw error;
+        }
+        if (order.status === "CANCELLED") {
+          const error = new Error("Cancelled orders cannot be settled");
+          error.status = 409;
+          error.code = "ORDER_CANCELLED";
+          throw error;
+        }
+
+        await client.query(
+          `UPDATE dineflow_payments
+           SET status='FAILED', error_message='Replaced by cashier-recorded cash payment', updated_at=now()
+           WHERE order_id=$1 AND restaurant_id=$2 AND status='PENDING'`,
+          [orderId, restaurantId]
+        );
+        const paymentId = crypto.randomUUID();
+        const paymentResult = await client.query(
+          `INSERT INTO dineflow_payments
+           (id, order_id, restaurant_id, table_id, table_session_id, amount, currency, provider,
+            provider_payment_id, status, payment_method, idempotency_key, metadata)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,'CASH',$8,'CAPTURED','CASH',$9,$10::jsonb)
+           RETURNING *`,
+          [
+            paymentId, orderId, restaurantId, order.table_id, order.table_session_id,
+            order.total, order.currency, `cash_${paymentId}`, idempotencyKey,
+            JSON.stringify({ cashierId, receivedAt: new Date().toISOString() }),
+          ]
+        );
+        const updatedOrder = await client.query(
+          `UPDATE dineflow_orders
+           SET payment_status='PAID',
+               status=CASE WHEN status IN ('PAYMENT_PENDING','SUBMITTED') THEN 'PENDING_KITCHEN' ELSE status END
+           WHERE id=$1 AND restaurant_id=$2
+           RETURNING *`,
+          [orderId, restaurantId]
+        );
+        await client.query("COMMIT");
+        return {
+          payment: mapPayment(paymentResult.rows[0]),
+          order: mapPaymentOrder(updatedOrder.rows[0]),
+          alreadyRecorded: false,
+        };
+      } catch (error) {
+        await client.query("ROLLBACK");
+        if (error.code === "23505") {
+          error.status = 409;
+          error.code = "IDEMPOTENCY_KEY_REUSED";
+        }
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
+    async capturePaymentAndReleaseOrder({ paymentId, orderId, restaurantId, providerPaymentId, paymentMethod, metadata = {} }) {
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
 
-        // 1. Update payment status to CAPTURED
-        const paymentResult = await client.query(
-          `UPDATE dineflow_payments
-           SET status = 'CAPTURED',
-               provider_payment_id = $1,
-               metadata = metadata || $2::jsonb,
-               updated_at = now()
-           WHERE id = $3 AND status != 'CAPTURED'
-           RETURNING *`,
-          [providerPaymentId, JSON.stringify(metadata), paymentId]
+        const orderResult = await client.query(
+          "SELECT * FROM dineflow_orders WHERE id=$1 AND restaurant_id=$2 FOR UPDATE",
+          [orderId, restaurantId]
         );
+        if (!orderResult.rowCount) {
+          const error = new Error("Order not found");
+          error.status = 404;
+          error.code = "ORDER_NOT_FOUND";
+          throw error;
+        }
+        const currentOrder = orderResult.rows[0];
+        const currentPaymentResult = await client.query(
+          "SELECT * FROM dineflow_payments WHERE id=$1 AND order_id=$2 AND restaurant_id=$3 FOR UPDATE",
+          [paymentId, orderId, restaurantId]
+        );
+        if (!currentPaymentResult.rowCount) {
+          const error = new Error("Payment record not found");
+          error.status = 404;
+          error.code = "PAYMENT_NOT_FOUND";
+          throw error;
+        }
+        const currentPayment = mapPayment(currentPaymentResult.rows[0]);
 
-        // If already captured previously (idempotent), fetch current record
-        let capturedPayment;
-        if (paymentResult.rowCount > 0) {
-          capturedPayment = mapPayment(paymentResult.rows[0]);
-        } else {
-          const existing = await client.query("SELECT * FROM dineflow_payments WHERE id = $1", [paymentId]);
-          capturedPayment = mapPayment(existing.rows[0]);
+        if (currentPayment.status === "CAPTURED" && currentOrder.payment_status === "PAID") {
+          await client.query("COMMIT");
+          return { payment: currentPayment, order: currentOrder };
+        }
+        if (currentPayment.status !== "PENDING" || ["PAID", "REFUNDED"].includes(currentOrder.payment_status)
+            || currentOrder.status === "CANCELLED") {
+          const error = new Error("This order or payment is no longer pending");
+          error.status = 409;
+          error.code = "PAYMENT_NOT_PENDING";
+          throw error;
         }
 
-        // 2. Update order status: payment_status -> PAID, status -> PENDING_KITCHEN
-        const orderResult = await client.query(
+        const paymentResult = await client.query(
+          `UPDATE dineflow_payments
+           SET status='CAPTURED', provider_payment_id=$1,
+               payment_method=COALESCE($2, payment_method),
+               metadata=metadata || $3::jsonb, updated_at=now()
+           WHERE id=$4 AND status='PENDING'
+           RETURNING *`,
+          [providerPaymentId, paymentMethod || null, JSON.stringify(metadata), paymentId]
+        );
+        const updatedOrderResult = await client.query(
           `UPDATE dineflow_orders
            SET payment_status = 'PAID',
                status = CASE
@@ -140,13 +251,13 @@ function createPaymentRepository(pool) {
         );
 
         await client.query("COMMIT");
-
-        return {
-          payment: capturedPayment,
-          order: orderResult.rows[0],
-        };
+        return { payment: mapPayment(paymentResult.rows[0]), order: updatedOrderResult.rows[0] };
       } catch (error) {
         await client.query("ROLLBACK");
+        if (error.code === "23505") {
+          error.status = 409;
+          error.code = "IDEMPOTENCY_KEY_REUSED";
+        }
         throw error;
       } finally {
         client.release();
@@ -159,7 +270,7 @@ function createPaymentRepository(pool) {
          SET status = 'FAILED',
              error_message = $1,
              updated_at = now()
-         WHERE id = $2
+         WHERE id = $2 AND status = 'PENDING'
          RETURNING *`,
         [errorMessage, paymentId]
       );
@@ -197,5 +308,17 @@ function createPaymentRepository(pool) {
   };
 }
 
-module.exports = { createPaymentRepository };
+function mapPaymentOrder(row) {
+  return {
+    id: row.id,
+    restaurantId: row.restaurant_id,
+    tableId: row.table_id,
+    tableSessionId: row.table_session_id,
+    status: row.status,
+    paymentStatus: row.payment_status,
+    total: Number(row.total),
+    currency: row.currency,
+  };
+}
 
+module.exports = { createPaymentRepository };

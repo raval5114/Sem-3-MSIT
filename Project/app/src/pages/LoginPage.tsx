@@ -83,6 +83,8 @@ export default function LoginPage() {
         <p className="auth-footer">
           Don't have an account?{' '}
           <Link to="/register">Create one</Link>
+          <span> · </span>
+          <Link to="/restaurant-registration">Register a restaurant</Link>
         </p>
       </div>
       </main>

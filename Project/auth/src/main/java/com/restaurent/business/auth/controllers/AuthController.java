@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/auth")
@@ -39,12 +41,13 @@ public class AuthController {
     }
 
     @PostMapping("/addNewUser")
-    public String addNewUser(@RequestBody UserRequest userRequest) {
+    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+    public String addNewUser(@Valid @RequestBody UserRequest userRequest) {
         return service.addUser(userRequest);
     }
 
     @PostMapping("/login")
-    public LoginSuccessResponse authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
+    public LoginSuccessResponse authenticateAndGetToken(@Valid @RequestBody AuthRequest authRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(authRequest.getEmail(), authRequest.getPassword())
         );
@@ -89,7 +92,7 @@ public class AuthController {
     }
 
     @PostMapping("/generateToken")
-    public LoginSuccessResponse generateToken(@RequestBody AuthRequest authRequest) {
+    public LoginSuccessResponse generateToken(@Valid @RequestBody AuthRequest authRequest) {
         return authenticateAndGetToken(authRequest);
     }
 

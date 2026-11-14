@@ -10,13 +10,15 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons/*.png'],
+      includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
+      manifestFilename: 'manifest.webmanifest',
       manifest: {
+        id: '/',
         name: 'DineFlow',
         short_name: 'DineFlow',
         description: 'Smart Contactless Dining Platform — Staff Portal',
-        theme_color: '#f97316',
-        background_color: '#0f172a',
+        theme_color: '#1d754e',
+        background_color: '#f6f7f4',
         display: 'standalone',
         start_url: '/',
         scope: '/',
@@ -43,16 +45,6 @@ export default defineConfig({
       workbox: {
         // Cache strategies — network first for API, cache first for static assets
         runtimeCaching: [
-          {
-            // Auth API — network first (always fresh JWT responses)
-            urlPattern: /^http:\/\/localhost:8081\/auth\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'dineflow-auth-api',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 },
-              networkTimeoutSeconds: 10,
-            },
-          },
           {
             // Static assets — cache first
             urlPattern: /\.(?:js|css|woff2?|png|svg|ico)$/i,

@@ -43,6 +43,9 @@ public class RestaurantTable {
     @Column(name = "display_name", length = 100)
     private String displayName;
 
+    @Column(name = "assigned_waiter_id")
+    private UUID assignedWaiterId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private TableStatus status = TableStatus.ACTIVE;

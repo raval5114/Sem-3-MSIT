@@ -41,7 +41,7 @@ class RestaurantTableControllerSecurityTest {
         UserInfoDetails principal = new UserInfoDetails(user);
         when(tableService.get("restaurant-a", UUID.fromString("00000000-0000-0000-0000-000000000001")))
                 .thenReturn(new TableResponse(UUID.fromString("00000000-0000-0000-0000-000000000001"),
-                        "restaurant-a", 1, 4, null, null,
+                        "restaurant-a", 1, 4, null, null, null,
                         com.restaurent.business.auth.entities.TableStatus.ACTIVE, null, null));
 
         TableResponse response = controller.get(principal,

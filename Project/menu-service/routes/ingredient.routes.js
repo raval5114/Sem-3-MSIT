@@ -74,12 +74,7 @@ router.post("/", async (req, res) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const filters = {};
-
-    if (req.query.restaurantId) {
-      filters.restaurantId =
-        req.query.restaurantId;
-    }
+    const filters = { restaurantId: req.accessContext.restaurantId };
 
     if (req.query.category) {
       filters.category =
@@ -133,7 +128,8 @@ router.get("/:id", async (req, res) => {
   try {
     const ingredient =
       await getIngredientById(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!ingredient) {
@@ -185,7 +181,8 @@ router.put("/:id", async (req, res) => {
     const ingredient =
       await updateIngredient(
         req.params.id,
-        req.body
+        req.body,
+        req.accessContext.restaurantId
       );
 
     if (!ingredient) {
@@ -232,7 +229,8 @@ router.delete("/:id", async (req, res) => {
   try {
     const ingredient =
       await deleteIngredient(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!ingredient) {

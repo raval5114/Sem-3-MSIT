@@ -29,9 +29,11 @@ const getCategories = async (filters = {}) => {
 };
 
 // Get Category by ID
-const getCategoryById = async (id) => {
+const getCategoryById = async (id, restaurantId) => {
   try {
-    const category = await Category.findById(id);
+    const category = restaurantId
+      ? await Category.findOne({ _id: id, restaurantId })
+      : await Category.findById(id);
 
     if (!category) {
       throw new Error("Category not found");
@@ -44,10 +46,10 @@ const getCategoryById = async (id) => {
 };
 
 // Update Category
-const updateCategory = async (id, updateData) => {
+const updateCategory = async (id, updateData, restaurantId) => {
   try {
-    const category = await Category.findByIdAndUpdate(
-      id,
+    const category = await Category.findOneAndUpdate(
+      restaurantId ? { _id: id, restaurantId } : { _id: id },
       updateData,
       {
         new: true,
@@ -72,9 +74,11 @@ const updateCategory = async (id, updateData) => {
 };
 
 // Delete Category
-const deleteCategory = async (id) => {
+const deleteCategory = async (id, restaurantId) => {
   try {
-    const category = await Category.findByIdAndDelete(id);
+    const category = await Category.findOneAndDelete(
+      restaurantId ? { _id: id, restaurantId } : { _id: id }
+    );
 
     if (!category) {
       throw new Error("Category not found");

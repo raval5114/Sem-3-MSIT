@@ -7,7 +7,7 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "seed": "node scripts/seed-menu.js",
-    "test": "node --test test/customer-catalog.test.js test/menu-service.mock.test.js test/menu-service.services.test.js test/menu-entity-id-defaults.test.js",
+    "test": "node --test test/customer-catalog.test.js test/menu-service.mock.test.js test/menu-service.services.test.js test/menu-entity-id-defaults.test.js test/effective-access.test.js",
     "test:integration": "node --test test/menu-service.test.js"
   },
   "dependencies": {

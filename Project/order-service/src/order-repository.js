@@ -70,12 +70,20 @@ function createOrderRepository(pool) {
         unitPrice: Number(row.unit_price), lineTotal: Number(row.line_total), selections: row.selections,
       })));
     },
-    async findActiveOrdersByRestaurant(restaurantId) {
+    async findActiveOrdersByRestaurant(restaurantId, tableIds = null, includeUnpaid = false) {
+      if (Array.isArray(tableIds) && tableIds.length === 0) return [];
+      const tableClause = Array.isArray(tableIds) ? " AND table_id = ANY($2::uuid[])" : "";
+      const values = Array.isArray(tableIds) ? [restaurantId, tableIds] : [restaurantId];
+      const activeStatuses = "status IN ('SUBMITTED', 'PENDING_KITCHEN', 'ACCEPTED', 'PREPARING', 'READY')";
+      const orderScope = includeUnpaid
+        ? `status != 'CANCELLED' AND (${activeStatuses} OR payment_status IN ('UNPAID', 'PENDING', 'FAILED'))`
+        : activeStatuses;
       const result = await pool.query(
         `SELECT * FROM dineflow_orders
-         WHERE restaurant_id=$1 AND status IN ('SUBMITTED', 'PENDING_KITCHEN', 'ACCEPTED', 'PREPARING', 'READY')
+         WHERE restaurant_id=$1${tableClause}
+           AND ${orderScope}
          ORDER BY created_at ASC`,
-        [restaurantId]
+        values
       );
       const orders = [];
       for (const row of result.rows) {

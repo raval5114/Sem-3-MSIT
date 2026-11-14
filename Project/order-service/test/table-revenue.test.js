@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
 const { createApp } = require("../app");
+const { EffectiveAccessError } = require("../src/effective-access-client");
 
 function createMockApp({ claims, revenueData, crossTenant = false }) {
   const verifier = {
@@ -19,7 +20,15 @@ function createMockApp({ claims, revenueData, crossTenant = false }) {
   };
   const sessionStore = { isActive: async () => true };
   const checkout = {};
-  return createApp({ verifier, checkout, repository, sessionStore });
+  const accessClient = {
+    authorize: async ({ permission }) => {
+      if (!claims.privileges?.includes(permission)) {
+        throw new EffectiveAccessError("Permission denied", 403, "PERMISSION_DENIED");
+      }
+      return { role: claims.roles?.[0], permissions: claims.privileges };
+    },
+  };
+  return createApp({ verifier, checkout, repository, sessionStore, accessClient });
 }
 
 async function makeRequest(app, path, token) {
@@ -64,7 +73,7 @@ test("table-revenue: rejects staff tokens without TABLE_REVENUE_READ privilege",
   });
   const res = await makeRequest(app, "/analytics/tables/t1/revenue", "valid-token");
   assert.equal(res.status, 403);
-  assert.equal(res.body.code, "INSUFFICIENT_PRIVILEGES");
+  assert.equal(res.body.code, "PERMISSION_DENIED");
 });
 
 test("table-revenue: accepts staff token with TABLE_REVENUE_READ and calculates revenue accurately", async () => {
@@ -110,7 +119,7 @@ test("table-revenue: accepts staff token with TABLE_REVENUE_READ and calculates 
   assert.equal(receivedParams.tableId, "t1");
 });
 
-test("table-revenue: permits SUPER_ADMIN role without explicit TABLE_REVENUE_READ privilege", async () => {
+test("table-revenue: requires current Auth policy even for SUPER_ADMIN role", async () => {
   const app = createMockApp({
     claims: {
       sub: "u_super_1",
@@ -129,8 +138,8 @@ test("table-revenue: permits SUPER_ADMIN role without explicit TABLE_REVENUE_REA
     },
   });
   const res = await makeRequest(app, "/analytics/revenue", "valid-token");
-  assert.equal(res.status, 200);
-  assert.equal(res.body.data.grossRevenue, 5000);
+  assert.equal(res.status, 403);
+  assert.equal(res.body.code, "PERMISSION_DENIED");
 });
 
 test("table-revenue: rejects invalid date formats and invalid date range", async () => {
@@ -177,4 +186,3 @@ test("table-revenue: rejects cross-tenant table access", async () => {
   assert.equal(res.status, 403);
   assert.equal(res.body.code, "CROSS_TENANT_FORBIDDEN");
 });
-

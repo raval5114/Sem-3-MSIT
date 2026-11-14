@@ -76,12 +76,7 @@ router.post("/", async (req, res) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const filters = {};
-
-    if (req.query.restaurantId) {
-      filters.restaurantId =
-        req.query.restaurantId;
-    }
+    const filters = { restaurantId: req.accessContext.restaurantId };
 
     if (req.query.productId) {
       filters.productId =
@@ -135,7 +130,8 @@ router.get("/:id", async (req, res) => {
   try {
     const modifierGroup =
       await getModifierGroupById(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!modifierGroup) {
@@ -188,7 +184,8 @@ router.put("/:id", async (req, res) => {
     const modifierGroup =
       await updateModifierGroup(
         req.params.id,
-        req.body
+        req.body,
+        req.accessContext.restaurantId
       );
 
     if (!modifierGroup) {
@@ -236,7 +233,8 @@ router.delete("/:id", async (req, res) => {
   try {
     const modifierGroup =
       await deleteModifierGroup(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!modifierGroup) {

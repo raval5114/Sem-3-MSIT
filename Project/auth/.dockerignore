@@ -1,0 +1,4 @@
+admin.seed
+*.seed
+target/
+.git/

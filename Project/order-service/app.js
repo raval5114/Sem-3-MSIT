@@ -1,8 +1,16 @@
 const express = require("express");
 const { createCheckoutService, CheckoutError } = require("./src/checkout-service");
 const { validateTransition, OrderLifecycleError } = require("./src/order-lifecycle");
+const { EffectiveAccessClient, EffectiveAccessError } = require("./src/effective-access-client");
 
-function createApp({ verifier, checkout, repository, sessionStore, redisPublisher = null }) {
+function createApp({
+  verifier,
+  checkout,
+  repository,
+  sessionStore,
+  redisPublisher = null,
+  accessClient = new EffectiveAccessClient(),
+}) {
   const app = express();
   app.disable("x-powered-by");
   app.use((req, res, next) => {
@@ -19,10 +27,65 @@ function createApp({ verifier, checkout, repository, sessionStore, redisPublishe
     const authorization = req.get("authorization") || "";
     const match = authorization.match(/^Bearer\s+(.+)$/i);
     if (!match) return res.status(401).json({ success: false, code: "AUTH_REQUIRED", message: "Bearer token required" });
-    try { req.claims = await verifier.verify(match[1]); return next(); }
+    try {
+      req.accessToken = match[1];
+      req.claims = await verifier.verify(match[1]);
+      return next();
+    }
     catch (error) {
       if (error.message === "Auth key service is unavailable") return res.status(503).json({ success: false, code: "AUTH_KEYS_UNAVAILABLE", message: "Authentication service is temporarily unavailable" });
       return res.status(401).json({ success: false, code: "TOKEN_INVALID", message: "Bearer token is invalid or expired" });
+    }
+  });
+
+  app.use(async (req, res, next) => {
+    const claims = req.claims;
+    if (claims.type !== "STAFF") return next();
+
+    let requirement = null;
+    if (req.path === "/kitchen/queue") {
+      requirement = { featureKey: "KITCHEN_DISPLAY", permission: "ORDER_READ_ACTIVE" };
+    } else if (req.method === "GET" && req.path === "/waiter/queue") {
+      requirement = { featureKey: "WAITER_OPERATIONS", permission: "ORDER_READ_ACTIVE" };
+    } else if (req.method === "PATCH" && /^\/waiter\/[^/]+\/serve$/.test(req.path)) {
+      requirement = { featureKey: "WAITER_OPERATIONS", permission: "ORDER_UPDATE_STATUS" };
+    } else if (req.method === "GET" && req.path === "/orders/active") {
+      requirement = { featureKey: "ORDER_MANAGEMENT", permission: "ORDER_READ_ACTIVE" };
+    } else if (req.method === "GET" && req.path === "/cashier/orders") {
+      requirement = { featureKey: "CASHIER_OPERATIONS", permission: "ORDER_READ_ACTIVE" };
+    } else if (req.path.startsWith("/analytics/")) {
+      requirement = { featureKey: "ANALYTICS", permission: "TABLE_REVENUE_READ" };
+    } else if (req.method === "PATCH" && req.path.endsWith("/status")) {
+      const kitchenRoute = req.path.startsWith("/kitchen/");
+      requirement = req.body?.status === "CANCELLED"
+        ? { featureKey: kitchenRoute ? "KITCHEN_DISPLAY" : "ORDER_MANAGEMENT", permission: "ORDER_CANCEL" }
+        : {
+            featureKey: kitchenRoute ? "KITCHEN_DISPLAY" : "ORDER_MANAGEMENT",
+            permission: "ORDER_UPDATE_STATUS",
+          };
+    } else if (req.method === "POST" && req.path === "/") {
+      requirement = { featureKey: "ORDER_MANAGEMENT", permission: "ORDER_CREATE" };
+    } else if (req.method === "GET" && /^\/[^/]+(?:\/status)?$/.test(req.path)) {
+      requirement = { featureKey: "ORDER_MANAGEMENT", permission: "ORDER_READ_ACTIVE" };
+    }
+
+    if (!requirement) return next();
+    try {
+      const context = await accessClient.authorize({
+        token: req.accessToken,
+        restaurantId: claims.restaurantId,
+        ...requirement,
+      });
+      claims.roles = context.role ? [context.role] : [];
+      claims.privileges = context.permissions;
+      return next();
+    } catch (error) {
+      const status = error instanceof EffectiveAccessError ? error.status : 503;
+      return res.status(status).json({
+        success: false,
+        code: error.code || "ACCESS_POLICY_UNAVAILABLE",
+        message: status === 503 ? "Authorization service is temporarily unavailable" : error.message,
+      });
     }
   });
 
@@ -53,20 +116,29 @@ function createApp({ verifier, checkout, repository, sessionStore, redisPublishe
   app.get("/analytics/revenue", tableRevenueHandler);
   app.get("/analytics/tables/:tableId/revenue", tableRevenueHandler);
 
-  // Kitchen queue: Active orders in the restaurant
-  app.get("/kitchen/queue", async (req, res, next) => {
+  const activeOrdersHandler = async (req, res, next) => {
     try {
       const claims = req.claims;
       if (claims.type !== "STAFF" && !claims.roles?.includes("SUPER_ADMIN")) {
-        throw new CheckoutError("Staff authorization required for kitchen queue", 403, "STAFF_TOKEN_REQUIRED");
+        throw new CheckoutError("Staff authorization required to view active orders", 403, "STAFF_TOKEN_REQUIRED");
       }
       if (!claims.privileges?.includes("ORDER_READ_ACTIVE") && !claims.roles?.includes("SUPER_ADMIN")) {
-        throw new CheckoutError("Insufficient privilege to read active kitchen queue", 403, "PERMISSION_DENIED");
+        throw new CheckoutError("Insufficient privilege to read active orders", 403, "PERMISSION_DENIED");
       }
-      const orders = await repository.findActiveOrdersByRestaurant(claims.restaurantId);
+      const waiterWorkspace = req.path === "/waiter/queue";
+      const assignedTableIds = waiterWorkspace
+        ? await accessClient.assignedWaiterTableIds({ token: req.accessToken })
+        : null;
+      const cashierWorkspace = req.path === "/cashier/orders";
+      const orders = await repository.findActiveOrdersByRestaurant(
+        claims.restaurantId, assignedTableIds, cashierWorkspace);
       return res.status(200).json({ success: true, data: orders });
     } catch (error) { return next(error); }
-  });
+  };
+  app.get("/kitchen/queue", activeOrdersHandler);
+  app.get("/waiter/queue", activeOrdersHandler);
+  app.get("/orders/active", activeOrdersHandler);
+  app.get("/cashier/orders", activeOrdersHandler);
 
   app.post("/", async (req, res, next) => {
     try {
@@ -105,6 +177,12 @@ function createApp({ verifier, checkout, repository, sessionStore, redisPublishe
       if (!existing || existing.restaurantId !== claims.restaurantId) {
         return res.status(404).json({ success: false, code: "ORDER_NOT_FOUND", message: "Order not found" });
       }
+      if (req.path.startsWith("/waiter/")) {
+        const assignedTableIds = await accessClient.assignedWaiterTableIds({ token: req.accessToken });
+        if (!assignedTableIds.includes(existing.tableId)) {
+          throw new CheckoutError("This order is not on a table assigned to you", 403, "TABLE_NOT_ASSIGNED");
+        }
+      }
 
       // Enforce valid lifecycle transitions and staff privileges
       validateTransition(existing.status, targetStatus, claims);
@@ -137,6 +215,10 @@ function createApp({ verifier, checkout, repository, sessionStore, redisPublishe
 
   app.patch("/:orderId/status", updateStatusHandler);
   app.patch("/kitchen/:orderId/status", updateStatusHandler);
+  app.patch("/waiter/:orderId/serve", (req, res, next) => {
+    req.body = { ...req.body, status: "SERVED" };
+    return updateStatusHandler(req, res, next);
+  });
 
   app.get("/:orderId", async (req, res, next) => {
     try {

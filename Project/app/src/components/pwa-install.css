@@ -1,0 +1,98 @@
+.pwa-install-control {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 50;
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+}
+
+.pwa-install-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 17px;
+  border: 1px solid #ffffff30;
+  border-radius: 999px;
+  background: #1d754e;
+  color: #fff;
+  box-shadow: 0 7px 24px #173a292e;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+.pwa-install-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: #175e3e;
+  box-shadow: 0 10px 28px #173a2938;
+}
+
+.pwa-install-button:disabled {
+  cursor: progress;
+  opacity: .8;
+}
+
+.pwa-install-button > span {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.pwa-install-help {
+  width: min(340px, calc(100vw - 36px));
+  padding: 17px 18px;
+  border: 1px solid #e3eae4;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 46px #17271b20;
+  color: #27362c;
+}
+
+.pwa-install-help strong {
+  font: 750 14px/1.35 Manrope, 'Segoe UI', sans-serif;
+}
+
+.pwa-install-help p {
+  margin: 8px 0 10px;
+  color: #66736a;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.pwa-install-help b {
+  color: #315e43;
+}
+
+.pwa-install-help .pwa-install-secure-note {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff7e9;
+  color: #805b21;
+}
+
+.pwa-install-help small {
+  color: #87938a;
+  font-size: 10px;
+}
+
+.pwa-menu-dots {
+  color: #46544a;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .pwa-install-control {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .pwa-install-button {
+    min-height: 42px;
+    padding: 0 14px;
+  }
+}

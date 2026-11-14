@@ -58,8 +58,9 @@ const fields: Record<Resource, { key: string; label: string; type?: 'number' | '
 };
 
 export default function MenuPage() {
-  const { user, logout } = useAuth();
+  const { user, accessContext, logout, refreshAccessContext, hasPrivilege } = useAuth();
   const navigate = useNavigate();
+  const restaurantId = accessContext?.restaurantId ?? undefined;
   const [resource, setResource] = useState<Resource>('products');
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -70,28 +71,41 @@ export default function MenuPage() {
   const [formItem, setFormItem] = useState<CatalogItem | null | undefined>(undefined);
   const [details, setDetails] = useState<ProductDetails | CatalogItem | null>(null);
   const [busyId, setBusyId] = useState('');
+  const [imageProductId, setImageProductId] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const canManageImages = hasPrivilege('MENU_UPDATE');
 
   const refresh = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      if (resource === 'categories') setItems(await menuService.categories.list(user?.restaurantId));
-      else if (resource === 'products') setItems(await menuService.products.list({ restaurantId: user?.restaurantId }));
-      else if (resource === 'variants') setItems(await menuService.variants.list({ restaurantId: user?.restaurantId }));
-      else if (resource === 'modifierGroups') setItems(await menuService.modifierGroups.list({ restaurantId: user?.restaurantId }));
-      else if (resource === 'ingredients') setItems(await menuService.ingredients.list({ restaurantId: user?.restaurantId }));
+      if (resource === 'categories') setItems(await menuService.categories.list(restaurantId));
+      else if (resource === 'products') setItems(await menuService.products.list({ restaurantId }));
+      else if (resource === 'variants') setItems(await menuService.variants.list({ restaurantId }));
+      else if (resource === 'modifierGroups') setItems(await menuService.modifierGroups.list({ restaurantId }));
+      else if (resource === 'ingredients') setItems(await menuService.ingredients.list({ restaurantId }));
       else setItems(await menuService.allergens.list());
       if (resource === 'products' || resource === 'categories' || resource === 'variants' || resource === 'modifierGroups') {
         const [nextCategories, nextProducts] = await Promise.all([
-          menuService.categories.list(user?.restaurantId),
-          menuService.products.list({ restaurantId: user?.restaurantId }),
+          menuService.categories.list(restaurantId),
+          menuService.products.list({ restaurantId }),
         ]);
         setCategories(nextCategories); setProducts(nextProducts);
       }
-    } catch (cause) { setError(readError(cause)); }
+    } catch (cause) {
+      setError(readError(cause));
+      setItems([]); setCategories([]); setProducts([]);
+      const status = typeof cause === 'object' && cause !== null && 'response' in cause
+        ? (cause as { response?: { status?: number } }).response?.status
+        : undefined;
+      if (status === 401 || status === 403) void refreshAccessContext();
+    }
     finally { setLoading(false); }
-  }, [resource, user?.restaurantId]);
+  }, [refreshAccessContext, resource, restaurantId]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void refresh(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [refresh]);
 
   const run = async (id: string, action: () => Promise<unknown>, message: string) => {
     setBusyId(id || 'new'); setNotice(''); setError('');
@@ -101,7 +115,7 @@ export default function MenuPage() {
   };
 
   const save = async (values: FormValues) => {
-    const payload = toPayload(resource, values, user?.restaurantId);
+    const payload = toPayload(resource, values, restaurantId);
     const current = formItem;
     await run(current?._id ?? 'new', async () => {
       if (!current) await createItem(resource, payload);
@@ -112,6 +126,25 @@ export default function MenuPage() {
   const remove = (item: CatalogItem) => {
     if (!window.confirm(`Delete “${itemName(resource, item)}”? This action cannot be undone.`)) return;
     void run(item._id, () => deleteItem(resource, item._id), `${resourceLabels[resource].slice(0, -1)} deleted.`);
+  };
+
+  const saveImage = async (product: Product) => {
+    const nextUrl = imageUrl.trim();
+    if (nextUrl && !/^https?:\/\//i.test(nextUrl)) {
+      setError('Enter a valid image URL beginning with http:// or https://.');
+      return;
+    }
+    await run(product._id, () => menuService.products.update(product._id, { imageUrl: nextUrl }), nextUrl ? 'Food image saved.' : 'Food image removed.');
+    setImageProductId(''); setImageUrl('');
+  };
+
+  const uploadImage = async (product: Product, file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('Choose an image file.'); return; }
+    try {
+      const dataUrl = await prepareFoodImage(file);
+      await run(product._id, () => menuService.products.update(product._id, { imageUrl: dataUrl }), `Image uploaded for ${product.name}.`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'The image could not be uploaded.'); }
   };
 
   const openDetails = async (item: CatalogItem) => {
@@ -149,6 +182,21 @@ export default function MenuPage() {
       </div>
       <div className="df-resource-summary"><div><strong>{title}</strong><small>GET · POST · PUT · DELETE{resource === 'products' ? ' · PATCH availability/status' : ''}</small></div><span className="df-pill success">{items.length} records</span></div>
       {formItem !== undefined && <ResourceEditor key={`${resource}-${formItem?._id ?? 'new'}`} resource={resource} item={formItem} categories={categories} products={products} onCancel={() => setFormItem(undefined)} onSave={save} saving={busyId === 'new' || (!!formItem && busyId === formItem._id)} />}
+      {resource === 'products' && <section className="df-food-images" aria-label="Food images">
+        <div className="df-form-heading"><div><p className="df-eyebrow">MENU ITEM MEDIA</p><h3>Food images</h3></div><span className="df-pill muted">{products.filter((product) => product.imageUrl).length} images</span></div>
+        <p className="df-footnote">Upload a food photo from your device or add an image URL. Changes use the same restaurant-scoped menu permissions as product updates.</p>
+        {imageProductId && canManageImages && <form className="df-image-editor" onSubmit={(event) => { event.preventDefault(); const product = products.find((entry) => entry._id === imageProductId); if (product) void saveImage(product); }}>
+          <label>Menu item<select value={imageProductId} onChange={(event) => { const id = event.target.value; setImageProductId(id); setImageUrl(products.find((entry) => entry._id === id)?.imageUrl ?? ''); }}><option value="">Select a menu item</option>{products.map((product) => <option value={product._id} key={product._id}>{product.name}</option>)}</select></label>
+          <label className="wide">Image URL<input type="url" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://example.com/food-photo.jpg" /></label>
+          {imageUrl && <img className="df-food-image-preview" src={imageUrl} alt="Selected food preview" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} onLoad={(event) => { event.currentTarget.style.visibility = 'visible'; }} />}
+          <div className="df-form-actions"><button type="button" className="df-button df-button-subtle" onClick={() => { setImageProductId(''); setImageUrl(''); }}>Cancel</button><button className="df-button df-button-primary" disabled={!!busyId || !imageProductId}>Save image</button></div>
+        </form>}
+        {products.length ? <div className="df-food-image-grid">{products.map((product) => <article className="df-food-image-card" key={product._id}>
+          {product.imageUrl ? <img src={product.imageUrl} alt={product.name} loading="lazy" /> : <div className="df-food-image-empty" aria-label="No food image">🍽️</div>}
+          <div><strong>{product.name}</strong><small>{product.imageUrl ? 'Image added' : 'No image yet'}</small></div>
+          {canManageImages && <div className="df-row-actions"><label className="df-text-button df-upload-button">{product.imageUrl ? 'Upload / replace' : 'Upload image'}<input type="file" accept="image/*" aria-label={`Upload image for ${product.name}`} disabled={!!busyId} onChange={(event) => { void uploadImage(product, event.target.files?.[0]); event.currentTarget.value = ''; }} /></label><button className="df-text-button" onClick={() => { setImageProductId(product._id); setImageUrl(product.imageUrl?.startsWith('data:image/') ? '' : product.imageUrl ?? ''); }} disabled={!!busyId}>Use image URL</button>{product.imageUrl && <button className="df-text-button df-delete-action" onClick={() => { if (window.confirm(`Remove the image for “${product.name}”?`)) void run(product._id, () => menuService.products.update(product._id, { imageUrl: '' }), 'Food image removed.'); }} disabled={!!busyId}>Remove</button>}</div>}
+        </article>)}</div> : <div className="df-empty">Add menu items first to manage their food images.</div>}
+      </section>}
       {details && <div className="df-detail-drawer"><div className="df-form-heading"><div><p className="df-eyebrow">READ RECORD</p><h3>{itemName(resource, details)}</h3></div><button className="df-icon-button" onClick={() => setDetails(null)} aria-label="Close details">×</button></div><pre>{JSON.stringify(details, null, 2)}</pre></div>}
       {loading ? <div className="df-empty">Loading {title.toLowerCase()}…</div> : items.length ? <div className="df-table-wrap"><table className="df-table"><thead><tr><th>Name</th><th>Resource details</th><th>Status</th><th>Actions</th></tr></thead><tbody>{items.map((item) => <tr key={item._id}><td><strong>{itemName(resource, item)}</strong><small>{itemDescription(resource, item)}</small></td><td>{summaryFor(resource, item)}</td><td>{resource === 'products' ? <select className="df-inline-select" aria-label={`Set ${itemName(resource, item)} status`} value={(item as Product).status} disabled={busyId === item._id} onChange={(event) => void run(item._id, () => menuService.products.setStatus(item._id, event.target.value as Product['status']), 'Product status updated.') }><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option></select> : <span className={`df-pill ${isActive(item) ? 'success' : 'muted'}`}>{isActive(item) ? 'Active' : 'Inactive'}</span>}</td><td><div className="df-row-actions"><button className="df-text-button" disabled={busyId === item._id} onClick={() => void openDetails(item)}>View</button><button className="df-text-button" disabled={busyId === item._id} onClick={() => setFormItem(item)}>Edit</button>{resource === 'products' && <button className="df-text-button" disabled={busyId === item._id} onClick={() => void run(item._id, () => menuService.products.setAvailability(item._id, !(item as Product).isAvailable), 'Product availability updated.')}>{(item as Product).isAvailable ? 'Mark unavailable' : 'Mark available'}</button>}<button className="df-text-button df-delete-action" disabled={busyId === item._id} onClick={() => remove(item)}>Delete</button></div></td></tr>)}</tbody></table></div> : <div className="df-empty"><span>☷</span><strong>No {title.toLowerCase()} yet</strong><p>Create a record to start using this part of the menu catalog.</p><button className="df-button df-button-primary" onClick={() => setFormItem(null)}>＋ Add {singular(resource)}</button></div>}
     </section>
@@ -269,4 +317,29 @@ function readError(cause: unknown) {
     if (response?.data?.message) return response.data.message;
   }
   return cause instanceof Error ? cause.message : 'The Menu Service request failed.';
+}
+
+function prepareFoodImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the selected image.'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error('The selected file is not a usable image.'));
+      image.onload = () => {
+        const scale = Math.min(1, 1400 / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext('2d');
+        if (!context) { reject(new Error('Image processing is unavailable in this browser.')); return; }
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        if (dataUrl.length > 4_500_000) { reject(new Error('This image is too large. Choose a smaller photo.')); return; }
+        resolve(dataUrl);
+      };
+      image.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
 }

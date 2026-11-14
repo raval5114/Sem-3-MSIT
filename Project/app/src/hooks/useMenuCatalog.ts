@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { menuService, type Category, type Product } from '../services/menuService';
 
-export function useMenuCatalog(restaurantId?: string) {
+export function useMenuCatalog(restaurantId?: string, enabled = true) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const refresh = useCallback(async () => {
+    if (!enabled) {
+      setCategories([]);
+      setProducts([]);
+      setError('');
+      setLoading(false);
+      return;
+    }
     if (!restaurantId) {
       setCategories([]);
       setProducts([]);
@@ -36,9 +43,12 @@ export function useMenuCatalog(restaurantId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId]);
+  }, [enabled, restaurantId]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void refresh(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [refresh]);
 
   const createCategory = useCallback(async (payload: Partial<Category>) => {
     await menuService.categories.create({ ...payload, restaurantId });

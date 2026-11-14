@@ -13,6 +13,7 @@ public record TableResponse(
         Integer seatingCapacity,
         String section,
         String displayName,
+        UUID assignedWaiterId,
         TableStatus status,
         Instant createdAt,
         Instant updatedAt) {
@@ -21,6 +22,6 @@ public record TableResponse(
         return new TableResponse(
                 table.getId(), table.getRestaurantId(), table.getTableNumber(),
                 table.getSeatingCapacity(), table.getSection(), table.getDisplayName(),
-                table.getStatus(), table.getCreatedAt(), table.getUpdatedAt());
+                table.getAssignedWaiterId(), table.getStatus(), table.getCreatedAt(), table.getUpdatedAt());
     }
 }

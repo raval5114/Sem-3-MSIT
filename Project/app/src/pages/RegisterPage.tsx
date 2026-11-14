@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 
 const ROLES = [
-  'SUPER_ADMIN',
   'RESTAURANT_ADMIN',
   'CHEF',
   'WAITER',

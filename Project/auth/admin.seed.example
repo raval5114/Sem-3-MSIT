@@ -1,0 +1,38 @@
+{
+  "restaurant": {
+    "restaurantId": "rest_123",
+    "name": "REPLACE_WITH_RESTAURANT_NAME"
+  },
+  "accounts": [
+    {
+      "name": "REPLACE_WITH_SUPER_ADMIN_NAME",
+      "email": "super-admin@example.com",
+      "password": "REPLACE_WITH_A_STRONG_PASSWORD",
+      "role": "SUPER_ADMIN"
+    },
+    {
+      "name": "REPLACE_WITH_RESTAURANT_ADMIN_NAME",
+      "email": "restaurant-admin@example.com",
+      "password": "REPLACE_WITH_A_STRONG_PASSWORD",
+      "role": "RESTAURANT_ADMIN"
+    },
+    {
+      "name": "REPLACE_WITH_CHEF_NAME",
+      "email": "chef@example.com",
+      "password": "REPLACE_WITH_A_STRONG_PASSWORD",
+      "role": "CHEF"
+    },
+    {
+      "name": "REPLACE_WITH_WAITER_NAME",
+      "email": "waiter@example.com",
+      "password": "REPLACE_WITH_A_STRONG_PASSWORD",
+      "role": "WAITER"
+    },
+    {
+      "name": "REPLACE_WITH_CASHIER_NAME",
+      "email": "cashier@example.com",
+      "password": "REPLACE_WITH_A_STRONG_PASSWORD",
+      "role": "CASHIER"
+    }
+  ]
+}

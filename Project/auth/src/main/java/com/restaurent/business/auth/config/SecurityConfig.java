@@ -14,8 +14,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 import com.restaurent.business.auth.filters.JwtAuthFilter;
+import com.restaurent.business.auth.filters.RequestRateLimitFilter;
 import com.restaurent.business.auth.services.UserInfoService;
 
 @Configuration
@@ -25,6 +27,8 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthFilter authFilter;
+    @Autowired
+    private RequestRateLimitFilter requestRateLimitFilter;
     @Autowired
     private UserInfoService userInfoService;
     @Autowired
@@ -36,10 +40,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/auth/welcome",
-                        "/auth/addNewUser",
                         "/auth/login",
                         "/auth/generateToken",
+                        "/auth/restaurant-registrations",
                         "/auth/table-session/init",
+                        "/actuator/health",
+                        "/actuator/health/**",
                         "/.well-known/jwks.json",
                         "/auth/.well-known/jwks.json").permitAll()
                 .anyRequest().authenticated()
@@ -47,7 +53,16 @@ public class SecurityConfig {
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(requestRateLimitFilter, JwtAuthFilter.class)
                 .build();
+    }
+
+    @Bean
+    public FilterRegistrationBean<RequestRateLimitFilter> requestRateLimitFilterRegistration(
+            RequestRateLimitFilter filter) {
+        FilterRegistrationBean<RequestRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean

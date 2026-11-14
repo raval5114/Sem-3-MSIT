@@ -7,6 +7,7 @@ import StatCard from '../components/dashboard/StatCard';
 import { useMenuCatalog } from '../hooks/useMenuCatalog';
 import { apiRouteCatalog, menuService, type Allergen, type Category, type Ingredient, type Product } from '../services/menuService';
 import { tableService, type RestaurantTable, type TableQrResponse, type TableRequest, type TableStatus } from '../services/tableService';
+import { restaurantAdminService } from '../services/restaurantAdminService';
 import TableRevenueAnalytics from './TableRevenueAnalytics';
 import '../dashboard.css';
 
@@ -19,19 +20,24 @@ const viewCopy: Record<DashboardView, [string, string, string]> = {
   'food-intelligence': ['FOOD INTELLIGENCE', 'Food graph.', 'Connect ingredients, recipes, dietary properties, and allergens.'],
   orders: ['RESTAURANT OPERATIONS', 'Orders.', 'Follow incoming orders from placement through fulfilment.'],
   kitchen: ['RESTAURANT OPERATIONS', 'Kitchen display.', 'Keep preparation work moving with a live kitchen queue.'],
+  waiter: ['TABLE SERVICE', 'Waiter service.', 'Keep active table orders moving through service.'],
   tables: ['RESTAURANT OPERATIONS', 'Tables & QR.', 'Give guests a simple path from their table to your menu.'],
   revenue: ['RESTAURANT ANALYTICS', 'Revenue by table.', 'Review settled sales and refunds for your restaurant tables.'],
   payments: ['RESTAURANT OPERATIONS', 'Payments.', 'Track payment status and guest receipts.'],
+  admin: ['RESTAURANT ADMINISTRATION', 'Restaurant administration.', 'Manage staff accounts and restaurant settings.'],
   assistant: ['INTELLIGENCE', 'DineFlow assistant.', 'Restaurant insights and assistance, in one place.'],
   simulation: ['INTELLIGENCE', 'What-if simulator.', 'Explore menu changes and their expected impact.'],
   'api-routes': ['DEVELOPER TOOLS', 'API route map.', 'See which frontend workflows are backed by live service endpoints.'],
 };
 
-export default function DashboardPage() {
-  const { user, logout } = useAuth();
+export default function DashboardPage({ initialView = 'overview' }: { initialView?: DashboardView }) {
+  const { user, accessContext, logout } = useAuth();
   const navigate = useNavigate();
-  const [view, setView] = useState<DashboardView>('overview');
-  const { categories, products, loading, error, refresh, createCategory, createProduct, setAvailability, setStatus, deleteProduct, deleteCategory } = useMenuCatalog(user?.restaurantId);
+  const [view, setView] = useState<DashboardView>(initialView);
+  const restaurantId = accessContext?.restaurantId ?? undefined;
+  const hasNavigation = (featureKey: string) => accessContext?.navigation.some((item) => item.featureKey === featureKey) ?? false;
+  const menuEnabled = hasNavigation('MENU_MANAGEMENT');
+  const { categories, products, loading, error, refresh, createCategory, createProduct, setAvailability, setStatus, deleteProduct, deleteCategory } = useMenuCatalog(restaurantId, menuEnabled);
   const [tab, setTab] = useState<Tab>('products');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -47,14 +53,25 @@ export default function DashboardPage() {
   const categoryById = useMemo(() => new Map(categories.map((category) => [category._id, category.name])), [categories]);
 
   const navigateTo = (next: DashboardView) => {
-    if (next === 'menu') { navigate('/menu'); return; }
+    const paths: Partial<Record<DashboardView, string>> = {
+      overview: '/dashboard',
+      menu: '/menu',
+      orders: '/orders',
+      kitchen: '/kds',
+      waiter: '/waiter',
+      tables: '/tables',
+      revenue: '/analytics',
+      payments: '/payments',
+      admin: '/admin',
+    };
+    if (paths[next]) { navigate(paths[next]); return; }
     setView(next); setNotice(''); setResourceError(''); setResourceForm(false);
     if (next === 'ingredients' || next === 'allergens') void loadResources(next);
   };
   async function loadResources(target: 'ingredients' | 'allergens' = view as 'ingredients' | 'allergens') {
     setResourceLoading(true); setResourceError('');
     try {
-      if (target === 'ingredients') setIngredients(await menuService.ingredients.list({ restaurantId: user?.restaurantId }));
+      if (target === 'ingredients') setIngredients(await menuService.ingredients.list({ restaurantId }));
       else setAllergens(await menuService.allergens.list());
     } catch (cause) { setResourceError(cause instanceof Error ? cause.message : 'Could not load data.'); }
     finally { setResourceLoading(false); }
@@ -66,28 +83,39 @@ export default function DashboardPage() {
     finally { setBusy(false); }
   };
   const handleLogout = () => { logout(); navigate('/login'); };
-  const [eyebrow, title, description] = viewCopy[view];
+  const [defaultEyebrow, defaultTitle, defaultDescription] = viewCopy[view];
+  const [eyebrow, title, description] = view === 'overview' && accessContext?.role === 'RESTAURANT_ADMIN'
+    ? ['RESTAURANT ADMINISTRATION', `${accessContext.restaurantName || 'Your restaurant'} workspace`, 'Manage the modules and operations currently enabled for your restaurant.']
+    : [defaultEyebrow, defaultTitle, defaultDescription];
 
   return <AppShell user={user ?? {}} activeView={view} onNavigate={navigateTo} onLogout={handleLogout}>
     {view === 'overview' && <>
-      <PageHeader eyebrow={eyebrow} title={title} description={description} action={{ label: 'Manage menu', onClick: () => navigateTo('menu') }} />
-      {error && <div className="df-alert error"><strong>Menu service unavailable</strong><span>{error}</span><button onClick={() => void refresh()}>Retry</button></div>}
-      {!error && !user?.restaurantId && <div className="df-alert warning"><strong>Restaurant scope is missing</strong><span>Sign in with a restaurant account to load restaurant data.</span></div>}
-      <div className="df-stat-grid">
+      <PageHeader eyebrow={eyebrow} title={title} description={description} action={menuEnabled ? { label: 'Manage menu', onClick: () => navigateTo('menu') } : undefined} />
+      {menuEnabled && error && <div className="df-alert error"><strong>Menu service unavailable</strong><span>{error}</span><button onClick={() => void refresh()}>Retry</button></div>}
+      {!menuEnabled && <div className="df-stat-grid">
+        <StatCard label="Available modules" value={accessContext?.navigation.length ?? 0} detail="Current role and subscription access" icon="▤" />
+        <StatCard label="Your role" value={accessContext?.role?.replaceAll('_', ' ') ?? '—'} detail="Server-verified role" icon="♧" tone="green" />
+        <StatCard label="Subscription" value={accessContext?.subscriptionStatus ?? '—'} detail="Current access status" icon="✓" tone="purple" />
+      </div>}
+      {menuEnabled && <div className="df-stat-grid">
         <StatCard label="Menu items" value={loading ? '…' : products.length} detail={`${activeProducts.length} active`} icon="▤" />
         <StatCard label="Available now" value={loading ? '…' : availableProducts.length} detail="Items guests can order" icon="✓" tone="green" />
         <StatCard label="Categories" value={loading ? '…' : categories.length} detail="Menu sections" icon="▦" tone="purple" />
-        <StatCard label="Orders today" value="—" detail="Orders API not connected" icon="↗" tone="blue" />
-      </div>
-      <section className="df-panel df-overview-panel">
+        <StatCard label="Available modules" value={accessContext?.navigation.length ?? 0} detail="Current role and subscription access" icon="↗" tone="blue" />
+      </div>}
+      {accessContext?.role === 'RESTAURANT_ADMIN' && accessContext.permissions.includes('STAFF_MANAGE') && (
+        <div className="df-alert success"><span>Staff and restaurant settings are available in the administration workspace.</span><button onClick={() => navigateTo('admin')}>Open administration</button></div>
+      )}
+      {menuEnabled && <section className="df-panel df-overview-panel">
         <div className="df-panel-heading"><div><p className="df-eyebrow">MENU SNAPSHOT</p><h2>Recently updated menu items</h2></div><button className="df-text-button" onClick={() => navigateTo('menu')}>Open catalog ↗</button></div>
         {loading ? <div className="df-empty">Loading restaurant menu…</div> : products.length ? <div className="df-table-wrap"><table className="df-table"><thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Availability</th></tr></thead><tbody>{products.slice(0, 5).map((product) => <tr key={product._id}><td><strong>{product.name}</strong><small>{product.description || 'No description'}</small></td><td>{categoryById.get(product.categoryId) ?? 'Uncategorized'}</td><td>{formatPrice(product.basePrice)}</td><td><span className={`df-pill ${product.isAvailable ? 'success' : 'muted'}`}>{product.isAvailable ? 'Available' : 'Unavailable'}</span></td></tr>)}</tbody></table></div> : <div className="df-empty"><span>☷</span><strong>Your menu is ready to take shape</strong><p>Add a category and your first item to get started.</p><button className="df-button df-button-primary" onClick={() => navigateTo('menu')}>Set up menu</button></div>}
       </section>
+      }
       <section className="df-quick-grid">
-        <button onClick={() => navigateTo('menu')}><span className="df-quick-icon orange">＋</span><strong>Add menu item</strong><small>Create products and categories</small><b>↗</b></button>
-        <button onClick={() => window.location.href = '/kds'}><span className="df-quick-icon orange">🍳</span><strong>Kitchen KDS</strong><small>Live tickets & station orders</small><b>↗</b></button>
-        <button onClick={() => navigateTo('ingredients')}><span className="df-quick-icon green">◉</span><strong>Update ingredients</strong><small>Maintain food reference data</small><b>↗</b></button>
-        <button onClick={() => navigateTo('api-routes')}><span className="df-quick-icon purple">⌘</span><strong>Explore API coverage</strong><small>See live and planned routes</small><b>↗</b></button>
+        {menuEnabled && <button onClick={() => navigateTo('menu')}><span className="df-quick-icon orange">＋</span><strong>Manage menu</strong><small>Open the authorized catalog</small><b>↗</b></button>}
+        {hasNavigation('KITCHEN_DISPLAY') && <button onClick={() => navigateTo('kitchen')}><span className="df-quick-icon orange">🍳</span><strong>Kitchen display</strong><small>View active kitchen tickets</small><b>↗</b></button>}
+        {hasNavigation('TABLE_QR_MANAGEMENT') && <button onClick={() => navigateTo('tables')}><span className="df-quick-icon green">▦</span><strong>Tables & QR</strong><small>Manage restaurant tables</small><b>↗</b></button>}
+        {hasNavigation('ANALYTICS') && <button onClick={() => navigateTo('revenue')}><span className="df-quick-icon purple">↗</span><strong>Revenue analytics</strong><small>Review restaurant revenue</small><b>↗</b></button>}
       </section>
     </>}
 
@@ -108,13 +136,13 @@ export default function DashboardPage() {
       {(resourceError || resourceLoading) && <div className={`df-alert ${resourceError ? 'error' : ''}`}>{resourceError || 'Loading reference data…'}{resourceError && <button onClick={() => void loadResources()}>Retry</button>}</div>}
       {notice && <div className="df-alert success">{notice}</div>}
       <section className="df-panel"><div className="df-panel-heading"><div><p className="df-eyebrow">REFERENCE DATA</p><h2>{view === 'ingredients' ? `${ingredients.length} ingredients` : `${allergens.length} allergens`}</h2></div><button className="df-icon-button" onClick={() => void loadResources()} aria-label="Refresh">↻</button></div>
-        {resourceForm && <ResourceForm kind={view} onCancel={() => setResourceForm(false)} onSubmit={(payload) => withAction(async () => { if (view === 'ingredients') await menuService.ingredients.create({ ...payload, restaurantId: user?.restaurantId }); else await menuService.allergens.create(payload); setResourceForm(false); await loadResources(); }, `${view === 'ingredients' ? 'Ingredient' : 'Allergen'} added.`)} />}
+        {resourceForm && <ResourceForm kind={view} onCancel={() => setResourceForm(false)} onSubmit={(payload) => withAction(async () => { if (view === 'ingredients') await menuService.ingredients.create({ ...payload, restaurantId }); else await menuService.allergens.create(payload); setResourceForm(false); await loadResources(); }, `${view === 'ingredients' ? 'Ingredient' : 'Allergen'} added.`)} />}
         {view === 'ingredients' ? <div className="df-card-list">{ingredients.map((item) => <article className="df-data-card" key={item._id}><span className="df-data-icon green">◉</span><div><strong>{item.name}</strong><small>{item.category}{item.description ? ` · ${item.description}` : ''}</small></div><span className={`df-pill ${item.isActive ? 'success' : 'muted'}`}>{item.isActive ? 'Active' : 'Inactive'}</span><button className="df-icon-button danger-icon" onClick={() => window.confirm(`Delete ingredient “${item.name}”?`) && void withAction(async () => { await menuService.ingredients.delete(item._id); await loadResources('ingredients'); }, 'Ingredient deleted.')}>⌫</button></article>)}{!ingredients.length && !resourceLoading && <div className="df-empty">No ingredients found. Add ingredients to prepare for recipe and food graph workflows.</div>}</div> : <div className="df-card-list">{allergens.map((item) => <article className="df-data-card" key={item._id}><span className="df-data-icon orange">!</span><div><strong>{item.name} <em>{item.code}</em></strong><small>{item.description || 'Allergen reference'}</small></div><span className={`df-pill ${item.isActive ? 'success' : 'muted'}`}>{item.isActive ? 'Active' : 'Inactive'}</span><button className="df-icon-button danger-icon" onClick={() => window.confirm(`Delete allergen “${item.name}”?`) && void withAction(async () => { await menuService.allergens.delete(item._id); await loadResources('allergens'); }, 'Allergen deleted.')}>⌫</button></article>)}{!allergens.length && !resourceLoading && <div className="df-empty">No allergen data found. Add the restaurant's allergen references.</div>}</div>}
       </section>
     </>}
 
     {view === 'api-routes' && <><PageHeader eyebrow={eyebrow} title={title} description={description} /><RouteMap /></>}
-    {view === 'tables' && <TableManagement restaurantId={user?.restaurantId ?? ''} eyebrow={eyebrow} title={title} description={description} />}
+    {view === 'tables' && <TableManagement restaurantId={restaurantId ?? ''} eyebrow={eyebrow} title={title} description={description} />}
     {view === 'revenue' && <TableRevenueAnalytics eyebrow={eyebrow} title={title} description={description} />}
     {view !== 'overview' && view !== 'menu' && view !== 'ingredients' && view !== 'allergens' && view !== 'api-routes' && view !== 'tables' && view !== 'revenue' && <><PageHeader eyebrow={eyebrow} title={title} description={description} /><ComingSoon view={view} /></>}
   </AppShell>;
@@ -159,7 +187,10 @@ function ComingSoon({ view }: { view: DashboardView }) {
 }
 
 function TableManagement({ restaurantId, eyebrow, title, description }: { restaurantId: string; eyebrow: string; title: string; description: string }) {
+  const { hasPrivilege } = useAuth();
+  const canAssignWaiters = hasPrivilege('STAFF_MANAGE');
   const [tables, setTables] = useState<RestaurantTable[]>([]);
+  const [waiters, setWaiters] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -178,8 +209,15 @@ function TableManagement({ restaurantId, eyebrow, title, description }: { restau
         return;
       }
       try {
-        const result = await tableService.list();
-        if (active) { setTables(result); setError(''); }
+        const [result, staff] = await Promise.all([
+          tableService.list(),
+          canAssignWaiters ? restaurantAdminService.listStaff() : Promise.resolve([]),
+        ]);
+        if (active) {
+          setTables(result);
+          setWaiters(staff.filter((account) => account.role === 'WAITER' && account.active).map(({ id, name }) => ({ id, name })));
+          setError('');
+        }
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not load tables.');
       } finally {
@@ -188,7 +226,7 @@ function TableManagement({ restaurantId, eyebrow, title, description }: { restau
     }
     void loadTables();
     return () => { active = false; };
-  }, [restaurantId, refreshKey]);
+  }, [canAssignWaiters, restaurantId, refreshKey]);
 
   const run = async (action: () => Promise<unknown>, success: string) => {
     setBusy(true); setError(''); setNotice('');
@@ -207,6 +245,11 @@ function TableManagement({ restaurantId, eyebrow, title, description }: { restau
     await tableService.setStatus(table.id, status); setRefreshKey((value) => value + 1);
   }, `Table ${table.tableNumber} status updated.`);
 
+  const assignWaiter = (table: RestaurantTable, waiterId: string) => void run(async () => {
+    await tableService.assignWaiter(table.id, waiterId || null);
+    setRefreshKey((value) => value + 1);
+  }, waiterId ? `Waiter assigned to table ${table.tableNumber}.` : `Waiter assignment cleared for table ${table.tableNumber}.`);
+
   const generateQr = (table: RestaurantTable) => void run(async () => {
     setQr(await tableService.issueQr(table.id));
   }, `QR code issued for table ${table.tableNumber}.`);
@@ -217,7 +260,7 @@ function TableManagement({ restaurantId, eyebrow, title, description }: { restau
     <section className="df-panel">
       <div className="df-panel-heading"><div><p className="df-eyebrow">TABLE SETUP</p><h2>{tables.length} tables</h2></div><button className="df-icon-button" onClick={() => setRefreshKey((value) => value + 1)} aria-label="Refresh tables">↻</button></div>
       {formOpen && <TableEditor key={editing?.id ?? 'new'} initial={editing} busy={busy} onCancel={() => { setFormOpen(false); setEditing(null); }} onSubmit={saveTable} />}
-      {loading ? <div className="df-empty">Loading tables…</div> : <div className="df-table-wrap"><table className="df-table"><thead><tr><th>Table</th><th>Seats</th><th>Section</th><th>Status</th><th>QR code</th><th /></tr></thead><tbody>{tables.map((table) => <tr key={table.id}><td><strong>{table.displayName || `Table ${table.tableNumber}`}</strong><small>No. {table.tableNumber} · {table.id.slice(0, 8)}</small></td><td>{table.seatingCapacity}</td><td>{table.section || '—'}</td><td><select className="df-inline-select" value={table.status} disabled={busy} onChange={(event) => changeStatus(table, event.target.value as TableStatus)}><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option><option value="MAINTENANCE">MAINTENANCE</option></select></td><td><button className="df-text-button" disabled={busy} onClick={() => generateQr(table)}>Generate / rotate</button></td><td><button className="df-icon-button" disabled={busy} aria-label={`Edit table ${table.tableNumber}`} onClick={() => { setEditing(table); setFormOpen(true); }}>✎</button></td></tr>)}</tbody></table>{!tables.length && <div className="df-empty">No tables yet. Add your first restaurant table.</div>}</div>}
+      {loading ? <div className="df-empty">Loading tables…</div> : <div className="df-table-wrap"><table className="df-table"><thead><tr><th>Table</th><th>Seats</th><th>Section</th>{canAssignWaiters && <th>Assigned waiter</th>}<th>Status</th><th>QR code</th><th /></tr></thead><tbody>{tables.map((table) => <tr key={table.id}><td><strong>{table.displayName || `Table ${table.tableNumber}`}</strong><small>No. {table.tableNumber} · {table.id.slice(0, 8)}</small></td><td>{table.seatingCapacity}</td><td>{table.section || '—'}</td>{canAssignWaiters && <td><select className="df-inline-select" value={table.assignedWaiterId ?? ''} disabled={busy} onChange={(event) => assignWaiter(table, event.target.value)}><option value="">Unassigned</option>{waiters.map((waiter) => <option key={waiter.id} value={waiter.id}>{waiter.name}</option>)}</select></td>}<td><select className="df-inline-select" value={table.status} disabled={busy} onChange={(event) => changeStatus(table, event.target.value as TableStatus)}><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option><option value="MAINTENANCE">MAINTENANCE</option></select></td><td><button className="df-text-button" disabled={busy} onClick={() => generateQr(table)}>Generate / rotate</button></td><td><button className="df-icon-button" disabled={busy} aria-label={`Edit table ${table.tableNumber}`} onClick={() => { setEditing(table); setFormOpen(true); }}>✎</button></td></tr>)}</tbody></table>{!tables.length && <div className="df-empty">No tables yet. Add your first restaurant table.</div>}</div>}
     </section>
     {qr && <section className="df-panel df-qr-panel"><div className="df-panel-heading"><div><p className="df-eyebrow">TABLE {qr.tableNumber}</p><h2>QR code ready to print</h2></div><button className="df-icon-button" aria-label="Close QR preview" onClick={() => setQr(null)}>×</button></div><div className="df-qr-content"><img src={qr.qrCodeDataUri} alt={`DineFlow ordering QR code for table ${qr.tableNumber}`} /><div><p>Scan this code to open the customer app for this table. Rotating the QR code revokes the previous code.</p><a className="df-button df-button-primary" href={qr.qrCodeDataUri} download={`dineflow-table-${qr.tableNumber}-qr.png`}>Download PNG</a><a className="df-qr-url" href={qr.customerUrl} target="_blank" rel="noreferrer">Open customer link</a><small>Credential version {qr.credentialVersion}</small></div></div></section>}
     <p className="df-footnote">Table access is scoped to your restaurant. QR credentials are reusable until rotated or the table is deactivated.</p>

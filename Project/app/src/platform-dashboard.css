@@ -1,0 +1,266 @@
+.df-platform-shell {
+  --platform-ink: #1d2735;
+  --platform-muted: #768292;
+  --platform-line: #e7ebef;
+  --platform-orange: #ed6a36;
+  min-height: 100vh;
+  color: var(--platform-ink);
+  background: #f7f8fa;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.df-platform-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 2;
+  display: flex;
+  width: 252px;
+  flex-direction: column;
+  padding: 27px 17px 18px;
+  border-right: 1px solid var(--platform-line);
+  background: #fff;
+}
+
+.df-platform-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 9px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.df-platform-brand > span,
+.df-platform-wordmark > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 13px;
+  color: white;
+  background: var(--platform-orange);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.df-platform-brand strong {
+  display: grid;
+  font-size: 16px;
+  letter-spacing: -.3px;
+}
+
+.df-platform-brand small {
+  margin-top: 3px;
+  color: #9aa3ae;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+}
+
+.df-platform-sidebar-label {
+  margin: 47px 11px 12px;
+  color: #a4acb5;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.1px;
+}
+
+.df-platform-sidebar nav { display: grid; gap: 5px; }
+
+.df-platform-nav-item {
+  display: flex;
+  min-height: 43px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  color: #657181;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.df-platform-nav-item > span { width: 19px; color: #8d98a6; font-size: 17px; text-align: center; }
+.df-platform-nav-item.active { color: #c64b1d; background: #fff1e9; font-weight: 650; }
+.df-platform-nav-item.active > span { color: var(--platform-orange); }
+.df-platform-nav-item small { margin-left: auto; color: #c64b1d; font-size: 11px; }
+
+.df-platform-sidebar-bottom { display: grid; gap: 11px; margin-top: auto; }
+.df-platform-admin-card { display: flex; align-items: center; gap: 10px; padding: 13px 9px; border-top: 1px solid var(--platform-line); }
+.df-platform-admin-avatar { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: #b64b24; background: #ffede3; font-weight: 700; }
+.df-platform-admin-card > span:last-child { display: grid; min-width: 0; gap: 3px; }
+.df-platform-admin-card strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.df-platform-admin-card small { color: #929ca8; font-size: 9px; letter-spacing: .8px; }
+.df-platform-signout { display: flex; align-items: center; gap: 10px; padding: 10px 11px; border: 0; color: #788493; background: transparent; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+
+.df-platform-main { min-height: 100vh; margin-left: 252px; }
+.df-platform-topbar { display: flex; height: 66px; align-items: center; justify-content: space-between; padding: 0 38px; border-bottom: 1px solid var(--platform-line); background: #fff; color: #707c8b; font-size: 12px; }
+.df-platform-topbar > div { display: flex; align-items: center; gap: 9px; }
+.df-platform-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #47ae79; box-shadow: 0 0 0 3px #e6f5eb; }
+.df-platform-topbar time { color: #929ca8; }
+.df-platform-content { width: min(1200px, 100%); margin: 0 auto; padding: 37px 38px 55px; }
+.df-platform-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.df-platform-eyebrow { margin: 0 0 9px; color: #a0a9b4; font-size: 10px; font-weight: 750; letter-spacing: 1.15px; }
+.df-platform-page-heading h1 { margin: 0; color: #202b39; font-size: clamp(25px, 3vw, 32px); letter-spacing: -1px; }
+.df-platform-page-heading > div:first-child > p:last-child { margin: 9px 0 0; color: #7d8897; font-size: 13px; }
+.df-platform-heading-badge { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #f4dfd4; border-radius: 999px; color: #bd4d21; background: #fff8f4; font-size: 11px; font-weight: 650; white-space: nowrap; }
+.df-platform-heading-badge span { font-size: 10px; }
+
+.df-platform-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; margin: 28px 0 22px; }
+.df-platform-metrics article { display: grid; min-height: 112px; align-content: center; gap: 7px; padding: 17px 19px; border: 1px solid var(--platform-line); border-radius: 12px; background: #fff; }
+.df-platform-metrics article > span { color: #9ca5af; font-size: 9px; font-weight: 750; letter-spacing: 1px; }
+.df-platform-metrics article strong { color: #263241; font-size: 25px; line-height: 1; }
+.df-platform-metrics article small { color: #86919f; font-size: 11px; }
+.df-platform-panel { overflow: hidden; border: 1px solid var(--platform-line); border-radius: 12px; background: #fff; }
+.df-platform-panel-header { display: flex; min-height: 88px; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border-bottom: 1px solid var(--platform-line); }
+.df-platform-panel-header h2 { margin: 0; color: #293442; font-size: 15px; }
+.df-platform-panel-header p { margin: 5px 0 0; color: #8a95a2; font-size: 11px; }
+.df-platform-filters { display: flex; align-items: center; gap: 9px; }
+.df-platform-search { display: flex; width: 205px; height: 35px; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid #e6e9ed; border-radius: 7px; color: #94a0ac; }
+.df-platform-search input { width: 100%; border: 0; outline: 0; color: #374251; background: transparent; font: inherit; font-size: 11px; }
+.df-platform-filters select { height: 35px; padding: 0 28px 0 10px; border: 1px solid #e6e9ed; border-radius: 7px; color: #596575; background: #fff; font: inherit; font-size: 11px; }
+.df-platform-table-wrap { overflow-x: auto; }
+.df-platform-table { width: 100%; border-collapse: collapse; text-align: left; }
+.df-platform-table th { padding: 13px 18px; border-bottom: 1px solid #edf0f2; color: #9ba4ae; background: #fbfcfd; font-size: 9px; font-weight: 750; letter-spacing: .85px; white-space: nowrap; }
+.df-platform-table td { padding: 14px 18px; border-bottom: 1px solid #f0f2f4; color: #697585; font-size: 11px; vertical-align: middle; }
+.df-platform-table tr:last-child td { border-bottom: 0; }
+.df-platform-table td > strong { display: block; color: #303b49; font-size: 12px; font-weight: 650; }
+.df-platform-table td > small { display: block; max-width: 330px; margin-top: 5px; color: #909aa6; line-height: 1.45; overflow-wrap: anywhere; }
+.df-platform-table code { color: #687485; font: 10px ui-monospace, SFMono-Regular, Consolas, monospace; }
+.df-platform-rejection { color: #bf5130 !important; }
+.df-platform-id { color: #38956b !important; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.df-platform-pill { display: inline-flex; min-height: 21px; align-items: center; padding: 0 8px; border-radius: 99px; color: #687485; background: #eff2f5; font-size: 9px; font-weight: 750; letter-spacing: .35px; white-space: nowrap; }
+.df-platform-pill.pending { color: #9d6a11; background: #fff4d8; }
+.df-platform-pill.approved,.df-platform-pill.active,.df-platform-pill.success { color: #268259; background: #e7f6ed; }
+.df-platform-pill.rejected,.df-platform-pill.suspended,.df-platform-pill.failure,.df-platform-pill.denied { color: #b34636; background: #ffebe8; }
+.df-platform-row-actions { display: flex; gap: 7px; }
+.df-platform-row-actions button,.df-platform-table-action { min-height: 29px; padding: 0 9px; border: 1px solid #f0d9ce; border-radius: 6px; color: #bd4e23; background: #fff9f5; font: inherit; font-size: 10px; font-weight: 650; cursor: pointer; white-space: nowrap; }
+.df-platform-row-actions button.danger,.df-platform-table-action.danger { border-color: #f3d9d5; color: #b64d40; background: #fff8f7; }
+.df-platform-row-actions button:disabled,.df-platform-table-action:disabled { opacity: .55; cursor: wait; }
+.df-platform-muted { color: #a0a8b1; font-size: 10px; }
+.df-platform-empty { display: grid; min-height: 190px; place-content: center; justify-items: center; gap: 8px; color: #9aa4ae; font-size: 12px; text-align: center; }
+.df-platform-empty > span { color: #e5a181; font-size: 26px; }
+.df-platform-empty strong { color: #566272; font-size: 13px; }
+.df-platform-empty p { margin: 0; }
+.df-platform-alert { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 13px 17px 0; padding: 10px 12px; border-radius: 7px; font-size: 11px; }
+.df-platform-alert.success { color: #267c56; background: #eaf7ef; }
+.df-platform-alert.error { color: #aa4034; background: #fff0ed; }
+.df-platform-alert button { border: 0; color: inherit; background: transparent; font: inherit; font-weight: 700; cursor: pointer; }
+.df-platform-pagination { display: flex; min-height: 57px; align-items: center; justify-content: space-between; padding: 0 18px; border-top: 1px solid #edf0f2; color: #8b96a2; font-size: 10px; }
+.df-platform-pagination > div { display: flex; gap: 7px; }
+.df-platform-pagination button { min-height: 30px; padding: 0 10px; border: 1px solid #e5e9ed; border-radius: 6px; color: #667282; background: #fff; font: inherit; cursor: pointer; }
+.df-platform-pagination button:disabled { opacity: .45; cursor: default; }
+
+.df-platform-public { min-height: 100vh; color: #202b39; background: #f8f8f7; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.df-platform-public-header,.df-platform-public-footer { display: flex; align-items: center; justify-content: space-between; padding: 18px max(24px, calc((100vw - 1060px) / 2)); background: #fff; }
+.df-platform-public-header { border-bottom: 1px solid #edf0f1; }
+.df-platform-wordmark { display: flex; align-items: center; gap: 10px; color: inherit; font-size: 16px; font-weight: 700; text-decoration: none; }
+.df-platform-wordmark > span { width: 34px; height: 34px; border-radius: 11px; font-size: 20px; }
+.df-platform-public-header > a:last-child { color: #9d4c2b; font-size: 12px; font-weight: 600; text-decoration: none; }
+.df-platform-public-main { display: grid; width: min(1000px, calc(100% - 40px)); grid-template-columns: 1fr 1fr; align-items: center; gap: 70px; margin: 60px auto; }
+.df-platform-public-intro h1 { max-width: 420px; margin: 0; color: #222c3a; font-size: clamp(34px, 5vw, 48px); letter-spacing: -2px; line-height: 1.09; }
+.df-platform-public-intro > p:not(.df-platform-eyebrow) { max-width: 400px; margin: 19px 0 0; color: #7f8a98; font-size: 14px; line-height: 1.7; }
+.df-platform-review-note { display: flex; align-items: center; gap: 12px; margin-top: 28px; color: #74808d; font-size: 12px; line-height: 1.7; }
+.df-platform-review-note > span { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; color: #32835f; background: #e8f6ec; }
+.df-platform-review-note p { margin: 0; }
+.df-platform-review-note strong { color: #3b4857; }
+.df-platform-form-card { padding: 30px; border: 1px solid #e9ecef; border-radius: 14px; background: #fff; box-shadow: 0 15px 50px #2634470b; }
+.df-platform-form-heading h2,.df-platform-submit-success h2 { margin: 0; color: #2a3543; font-size: 21px; letter-spacing: -.4px; }
+.df-platform-form-heading > p:last-child,.df-platform-submit-success > p { margin: 8px 0 0; color: #87919d; font-size: 12px; line-height: 1.6; }
+.df-platform-form { display: grid; gap: 15px; margin-top: 23px; }
+.df-platform-form label { display: grid; gap: 7px; color: #495665; font-size: 11px; font-weight: 650; }
+.df-platform-form input,.df-platform-form textarea { width: 100%; box-sizing: border-box; padding: 10px 11px; border: 1px solid #e1e6ea; border-radius: 7px; outline: none; color: #273342; background: #fff; font: inherit; font-size: 12px; }
+.df-platform-form input:focus,.df-platform-form textarea:focus { border-color: #e9a280; box-shadow: 0 0 0 3px #fff3ec; }
+.df-platform-form textarea { resize: vertical; }
+.df-platform-optional { margin-left: 4px; color: #9fa8b2; font-size: 8px; letter-spacing: .7px; }
+.df-platform-button { display: flex; min-height: 42px; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 7px; font: inherit; font-size: 12px; font-weight: 650; text-decoration: none; cursor: pointer; }
+.df-platform-button.primary { color: #fff; background: #e96837; }
+.df-platform-button.primary:disabled { opacity: .65; cursor: wait; }
+.df-platform-button.secondary { margin-top: 20px; border: 1px solid #e7e9ec; color: #566171; background: #fff; }
+.df-platform-form-footnote { margin: 0; color: #9aa3ad; font-size: 10px; line-height: 1.5; text-align: center; }
+.df-platform-submit-success { display: grid; justify-items: start; padding: 14px 0; }
+.df-platform-success-mark { display: grid; width: 42px; height: 42px; margin-bottom: 23px; place-items: center; border-radius: 50%; color: #2d875c; background: #e8f6ed; font-size: 20px; }
+.df-platform-submit-success > p strong { color: #354253; }
+.df-platform-reference { overflow-wrap: anywhere; color: #9ba4ad !important; font-size: 10px !important; }
+.df-platform-submit-success .df-platform-button { width: 100%; box-sizing: border-box; }
+.df-platform-public-footer { color: #a0a8b1; font-size: 10px; }
+
+.df-subscription-workspace { display: grid; gap: 18px; margin-top: 24px; }
+.df-subscription-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .82fr); gap: 20px; padding: 20px; }
+.df-subscription-form { display: grid; align-content: start; gap: 12px; padding: 17px; border: 1px solid #edf0f2; border-radius: 9px; background: #fcfcfd; }
+.df-subscription-form h3,.df-subscription-history h3 { margin: 0 0 3px; color: #303b49; font-size: 13px; }
+.df-subscription-form h4 { margin: 6px 0 0; color: #4a5664; font-size: 11px; }
+.df-subscription-form label { display: grid; gap: 6px; color: #586574; font-size: 10px; font-weight: 650; }
+.df-subscription-form input:not([type="checkbox"]),.df-subscription-form select,.df-subscription-form textarea,.df-platform-panel-header select { width: 100%; box-sizing: border-box; min-height: 34px; padding: 8px 9px; border: 1px solid #e1e6ea; border-radius: 6px; color: #344151; background: white; font: inherit; font-size: 11px; }
+.df-subscription-form textarea { min-height: 55px; resize: vertical; }
+.df-subscription-form button:not(.secondary) { min-height: 35px; padding: 0 13px; border: 0; border-radius: 6px; color: white; background: #e96837; font: inherit; font-size: 11px; font-weight: 650; cursor: pointer; }
+.df-subscription-form button:disabled { opacity: .6; cursor: wait; }
+.df-subscription-check { display: flex !important; grid-template-columns: auto 1fr; align-items: center; gap: 8px !important; font-weight: 500 !important; }
+.df-subscription-check input { margin: 0; accent-color: #e96837; }
+.df-subscription-form-row,.df-subscription-checkbox-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.df-subscription-checkbox-row { align-items: center; padding: 6px 0; }
+.df-subscription-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.df-subscription-actions .secondary { min-height: 35px; padding: 0 12px; border: 1px solid #e1e6ea; border-radius: 6px; color: #596575; background: #fff; font: inherit; font-size: 11px; cursor: pointer; }
+.df-subscription-feature-list,.df-subscription-plan-list,.df-subscription-history { display: grid; align-content: start; gap: 9px; }
+.df-subscription-feature,.df-subscription-plan-card,.df-subscription-history-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px; border: 1px solid #edf0f2; border-radius: 8px; }
+.df-subscription-feature > div,.df-subscription-plan-card > div,.df-subscription-history-item > div:first-child { display: grid; min-width: 0; gap: 5px; }
+.df-subscription-feature strong,.df-subscription-plan-card strong,.df-subscription-history-item strong { color: #303b49; font-size: 11px; }
+.df-subscription-feature small,.df-subscription-plan-card small,.df-subscription-history-item small { color: #86919f; font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
+.df-subscription-plan-card p { margin: 0; color: #687485; font-size: 10px; }
+.df-subscription-plan-form { grid-column: 1 / -1; }
+.df-subscription-matrix { display: grid; max-height: 360px; overflow: auto; border: 1px solid #e8ecef; border-radius: 7px; background: white; }
+.df-subscription-matrix-row { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(200px, 1fr); align-items: center; gap: 12px; padding: 9px 10px; border-bottom: 1px solid #eff1f3; }
+.df-subscription-matrix-row:last-child { border-bottom: 0; }
+.df-subscription-matrix-row .df-subscription-check { min-width: 0; }
+.df-subscription-matrix-row .df-subscription-check span { display: grid; gap: 3px; color: #475463; font-size: 10px; }
+.df-subscription-matrix-row .df-subscription-check small { color: #99a2ac; font-size: 8px; }
+.df-subscription-matrix-row textarea { min-height: 43px; font: 9px ui-monospace, SFMono-Regular, Consolas, monospace; }
+.df-subscription-history { padding: 0 2px; }
+.df-subscription-history-item { align-items: flex-start; }
+.df-subscription-history-item .df-platform-row-actions { flex-wrap: wrap; justify-content: flex-end; }
+.df-subscription-muted { margin: 0; color: #929ca8; font-size: 10px; }
+
+@media (max-width: 960px) {
+  .df-platform-sidebar { width: 215px; }
+  .df-platform-main { margin-left: 215px; }
+  .df-platform-content { padding-right: 24px; padding-left: 24px; }
+  .df-platform-topbar { padding-right: 24px; padding-left: 24px; }
+  .df-platform-public-main { gap: 35px; }
+}
+
+@media (max-width: 720px) {
+  .df-platform-sidebar { position: static; width: auto; min-height: auto; padding: 13px 15px; border-right: 0; border-bottom: 1px solid var(--platform-line); }
+  .df-platform-brand > span { width: 34px; height: 34px; font-size: 20px; }
+  .df-platform-sidebar-label,.df-platform-sidebar-bottom { display: none; }
+  .df-platform-sidebar nav { display: flex; overflow-x: auto; gap: 5px; margin-top: 13px; }
+  .df-platform-nav-item { min-height: 36px; flex: 0 0 auto; gap: 7px; padding: 0 10px; font-size: 11px; }
+  .df-platform-nav-item > span { font-size: 14px; }
+  .df-platform-main { margin-left: 0; }
+  .df-platform-topbar { height: 47px; padding: 0 17px; font-size: 10px; }
+  .df-platform-content { padding: 27px 15px 35px; }
+  .df-platform-page-heading { align-items: flex-start; }
+  .df-platform-heading-badge { padding: 7px 9px; font-size: 9px; }
+  .df-platform-metrics { gap: 7px; margin: 20px 0 15px; }
+  .df-platform-metrics article { min-height: 92px; gap: 6px; padding: 12px 10px; }
+  .df-platform-metrics article > span { font-size: 7px; letter-spacing: .5px; }
+  .df-platform-metrics article strong { font-size: 20px; }
+  .df-platform-metrics article small { font-size: 9px; }
+  .df-platform-panel-header { align-items: flex-start; flex-direction: column; padding: 15px; }
+  .df-platform-filters { width: 100%; }
+  .df-platform-search { width: auto; flex: 1; }
+  .df-platform-table { min-width: 710px; }
+  .df-platform-alert { margin-right: 12px; margin-left: 12px; }
+  .df-platform-pagination { padding: 0 12px; font-size: 9px; }
+  .df-platform-pagination button { padding: 0 7px; font-size: 9px; }
+  .df-platform-public-main { grid-template-columns: 1fr; gap: 27px; margin: 36px auto; }
+  .df-subscription-content { grid-template-columns: 1fr; padding: 14px; }
+  .df-subscription-matrix-row { grid-template-columns: 1fr; }
+  .df-platform-public-intro h1 { max-width: none; font-size: 36px; }
+  .df-platform-public-intro > p:not(.df-platform-eyebrow) { margin-top: 12px; font-size: 12px; }
+  .df-platform-review-note { margin-top: 16px; }
+  .df-platform-form-card { padding: 22px 18px; }
+  .df-platform-public-footer { gap: 10px; padding: 15px 20px; font-size: 9px; }
+}

@@ -12,8 +12,8 @@ Dates are intentionally left as **TBD** because no delivery calendar or phase du
 | 2 | QR issuance and customer session | QR credential issue/rotation, QR display/download, scan initialization, customer JWT, Redis session state, staff close | Phase 1 | TBD | ✅ Complete |
 | 3 | Customer menu and checkout | Menu browsing, cart/modifiers, validated checkout, order snapshots, payment choices | Phase 2 | TBD | ✅ Complete |
 | 4 | Kitchen updates and customer tracking | KDS queue, order transitions, Redis events, scoped WebSockets, customer status view and reconnect catch-up | Phase 3 | TBD | ✅ Complete |
-| 5 | Table revenue analytics | Staff privilege, tenant-scoped revenue aggregation, reporting semantics, admin panel | Phases 3–4 (settled order/payment records) | TBD | ⬜ Not started |
-| 6 | Containerization and release readiness | Docker/Compose wiring, health checks, migrations/seeds, complete test suites and operational documentation | Phases 1–5 | TBD | ⬜ Not started |
+| 5 | Table revenue analytics | Staff privilege, tenant-scoped revenue aggregation, reporting semantics, admin panel | Phases 3–4 (settled order/payment records) | TBD | ✅ Complete |
+| 6 | Containerization and release readiness | Docker/Compose wiring, health checks, migrations/seeds, complete test suites and operational documentation | Phases 1–5 | TBD | ✅ Complete |
 
 ## Phase completion checklist
 
@@ -49,23 +49,24 @@ Dates are intentionally left as **TBD** because no delivery calendar or phase du
 
 ### Phase 5 — Table revenue analytics
 
-- [ ] `TABLE_REVENUE_READ` privilege and role assignments.
-- [ ] Tenant-scoped revenue aggregation from settled/captured payments and refunds.
-- [ ] Staff-only table revenue panel with reporting period and currency.
-- [ ] Authorization, revenue calculation, and endpoint tests.
+- [x] `TABLE_REVENUE_READ` privilege and role assignments.
+- [x] Tenant-scoped revenue aggregation from settled/captured payments and refunds.
+- [x] Staff-only table revenue panel with reporting period and currency.
+- [x] Authorization, revenue calculation, and endpoint tests.
+- [x] Revenue analytics documentation aligned with the implemented Order Service endpoint and reporting semantics.
 
 ### Phase 6 — Containerization and release readiness
 
-- [ ] Dockerfiles and Compose dependencies, health checks, and environment settings verified.
-- [ ] Local migration/seed flow documented and exercised.
-- [ ] Unit, integration, end-to-end, security, and resilience suites pass.
-- [ ] Staff operating guidance for QR lifecycle, table  sessions, payments, and revenue published.
+- [x] Dockerfiles and Compose dependencies, health checks, and environment settings verified.
+- [x] Local migration/seed flow documented and exercised.
+- [x] Unit, integration, end-to-end, security, and resilience suites pass.
+- [x] Staff operating guidance for QR lifecycle, table sessions, payments, and revenue published.
 
 ## Progress
 
-**Completed:** 4 of 6 phases (67%).  
-**In progress:** Phase 5 — Table revenue analytics.  
-**Next:** Implement `TABLE_REVENUE_READ` privilege, tenant-scoped revenue aggregation endpoint, and staff analytics dashboard.
+**Completed:** 6 of 6 phases (100%).  
+**Status:** Project release-ready across containerization, local seed flow, and operational validation.  
+**Next:** Maintain the current stack, monitor service health, and expand automated coverage as new features are added.
 
 > Update this file when a phase is finalized. Mark its status complete only after the phase's implementation checklist and applicable tests are done.
     

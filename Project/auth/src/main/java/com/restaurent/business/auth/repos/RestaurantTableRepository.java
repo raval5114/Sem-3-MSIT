@@ -18,6 +18,9 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
 
     List<RestaurantTable> findAllByRestaurantIdOrderByTableNumberAsc(String restaurantId);
 
+    List<RestaurantTable> findAllByRestaurantIdAndAssignedWaiterIdOrderByTableNumberAsc(
+            String restaurantId, UUID assignedWaiterId);
+
     Optional<RestaurantTable> findByIdAndRestaurantId(UUID id, String restaurantId);
 
     Optional<RestaurantTable> findByIdAndRestaurantIdAndQrCredentialHash(UUID id, String restaurantId, String qrCredentialHash);

@@ -7,6 +7,7 @@ require("dotenv").config();
 
 const { JwtVerifier } = require("./src/jwt-verifier");
 const { createEventDispatcher } = require("./src/event-dispatcher");
+const { roomForClaims, canJoinRoom } = require("./src/room-access");
 
 const app = express();
 const PORT = process.env.PORT || 3004;
@@ -25,6 +26,42 @@ const io = new Server(server, {
 
 const verifier = new JwtVerifier();
 const dispatcher = createEventDispatcher(io);
+const authServiceUrl = (process.env.AUTH_SERVICE_URL || "http://localhost:8081").replace(/\/+$/, "");
+
+async function authorizeStaffSocket(token, restaurantId) {
+  let response;
+  try {
+    response = await fetch(`${authServiceUrl}/auth/access/authorize`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        featureKey: "KITCHEN_DISPLAY",
+        permission: "ORDER_READ_ACTIVE",
+        restaurantId,
+      }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch (error) {
+    throw new Error("Authorization service is unavailable");
+  }
+  let result = {};
+  try {
+    result = await response.json();
+  } catch (error) {
+    if (response.status !== 401 && response.status !== 403) {
+      throw new Error("Authorization service returned an invalid response");
+    }
+  }
+  if (!response.ok || !result.allowed || !result.context) {
+    const error = new Error(result.message || "Staff access denied");
+    error.code = result.code || (response.status === 401 ? "TOKEN_INVALID" : "ACCESS_DENIED");
+    throw error;
+  }
+  return result.context;
+}
 
 // Health Check Endpoint
 app.get("/health", (_req, res) => {
@@ -49,34 +86,56 @@ io.on("connection", (socket) => {
 
   // Authenticate socket and auto-join scoped rooms
   socket.on("authenticate", async (token) => {
+    socket.leaveAll();
+    socket.claims = null;
     try {
       const claims = await verifier.verify(token);
-      socket.claims = claims;
 
-      if (claims.type === "STAFF" || claims.roles?.includes("SUPER_ADMIN")) {
+      if (claims.type === "STAFF") {
+        const context = await authorizeStaffSocket(token, claims.restaurantId);
+        claims.roles = [context.role];
+        claims.privileges = context.permissions;
+        claims.restaurantId = context.restaurantId;
+        socket.claims = claims;
         const kitchenRoom = `kitchen:${claims.restaurantId}`;
         socket.join(kitchenRoom);
         socket.emit("authenticated", { role: "STAFF", room: kitchenRoom });
         console.log(`[Notification Service] Staff ${socket.id} joined ${kitchenRoom}`);
       } else if (claims.type === "CUSTOMER" && claims.tableSessionId) {
+        socket.claims = claims;
         const tableRoom = `table:${claims.tableSessionId}`;
         socket.join(tableRoom);
         socket.emit("authenticated", { role: "CUSTOMER", room: tableRoom });
         console.log(`[Notification Service] Customer ${socket.id} joined ${tableRoom}`);
+      } else {
+        throw new Error("A supported staff or table-session token is required");
       }
     } catch (err) {
-      socket.emit("auth_error", { message: err.message });
+      socket.emit("auth_error", {
+        code: err.code || "AUTHENTICATION_FAILED",
+        message: err.message === "Authorization service is unavailable"
+          || err.message === "Authorization service returned an invalid response"
+          ? "Authorization service is temporarily unavailable"
+          : err.message,
+      });
     }
   });
 
-  // Explicit room join
+  // Explicit joins are restricted to the identity-scoped room for this token.
   socket.on("join_room", (room) => {
+    const claims = socket.claims;
+    if (!claims || !canJoinRoom(claims, room)) {
+      socket.emit("room_error", { message: "Room is outside the authenticated scope" });
+      return;
+    }
     socket.join(room);
     socket.emit("joined_room", { room });
   });
 
   socket.on("leave_room", (room) => {
-    socket.leave(room);
+    const claims = socket.claims;
+    const allowedRoom = roomForClaims(claims);
+    if (room && room === allowedRoom) socket.leave(room);
   });
 
   socket.on("disconnect", () => {

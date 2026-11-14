@@ -16,6 +16,7 @@ import com.restaurent.business.auth.entities.RestaurantTable;
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=false",
         "jwt.key-dir=target/test-jwt-keys"
 })
 class RestaurantTableRepositoryTest {

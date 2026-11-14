@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import com.restaurent.business.auth.entities.TableStatus;
 import com.restaurent.business.auth.entities.dto.CreateTableRequest;
+import com.restaurent.business.auth.entities.dto.AssignWaiterRequest;
 import com.restaurent.business.auth.entities.dto.QrCodeResponse;
 import com.restaurent.business.auth.entities.dto.TableResponse;
 import com.restaurent.business.auth.entities.dto.UpdateTableRequest;
@@ -71,6 +72,14 @@ public class RestaurantTableController {
                                       @Valid @RequestBody UpdateTableStatusRequest request) {
         return tableService.updateStatus(staff.getUserInfo().getRestaurantId(), staffId(staff), tableId,
                 request.status());
+    }
+
+    @PatchMapping("/{tableId}/assignment")
+    public TableResponse assignWaiter(@AuthenticationPrincipal UserInfoDetails staff,
+                                      @PathVariable UUID tableId,
+                                      @RequestBody AssignWaiterRequest request) {
+        return tableService.assignWaiter(staff.getUserInfo().getRestaurantId(), staffId(staff),
+                tableId, request.waiterId());
     }
 
     @PostMapping("/{tableId}/qr/rotate")

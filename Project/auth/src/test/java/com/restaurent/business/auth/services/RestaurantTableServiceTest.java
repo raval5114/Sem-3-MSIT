@@ -17,22 +17,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.restaurent.business.auth.entities.RestaurantTable;
+import com.restaurent.business.auth.entities.Role;
 import com.restaurent.business.auth.entities.TableStatus;
+import com.restaurent.business.auth.entities.UserInfo;
 import com.restaurent.business.auth.entities.dto.CreateTableRequest;
 import com.restaurent.business.auth.entities.dto.UpdateTableRequest;
 import com.restaurent.business.auth.repos.RestaurantTableRepository;
+import com.restaurent.business.auth.repos.UserDetailsRepository;
 
 import static org.mockito.Mockito.mock;
 
 class RestaurantTableServiceTest {
 
     private RestaurantTableRepository repository;
+    private UserDetailsRepository userRepository;
     private RestaurantTableService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(RestaurantTableRepository.class);
-        service = new RestaurantTableService(repository);
+        userRepository = mock(UserDetailsRepository.class);
+        service = new RestaurantTableService(repository, userRepository);
     }
 
     @Test
@@ -125,5 +130,42 @@ class RestaurantTableServiceTest {
         var response = service.updateStatus("restaurant-a", UUID.randomUUID(), tableId, TableStatus.MAINTENANCE);
 
         assertEquals(TableStatus.MAINTENANCE, response.status());
+    }
+
+    @Test
+    void waiterAssignmentRequiresActiveWaiterInSameRestaurant() {
+        UUID tableId = UUID.randomUUID();
+        UUID waiterId = UUID.randomUUID();
+        RestaurantTable table = new RestaurantTable();
+        table.setId(tableId);
+        table.setRestaurantId("restaurant-a");
+        table.setTableNumber(12);
+        table.setSeatingCapacity(4);
+        UserInfo waiter = UserInfo.builder().id(waiterId).restaurantId("restaurant-a").isActive(true)
+                .role(Role.builder().name("WAITER").build()).build();
+        when(repository.findByIdAndRestaurantId(tableId, "restaurant-a")).thenReturn(Optional.of(table));
+        when(userRepository.findByIdAndRestaurantId(waiterId, "restaurant-a")).thenReturn(Optional.of(waiter));
+        when(repository.saveAndFlush(table)).thenReturn(table);
+
+        var response = service.assignWaiter("restaurant-a", UUID.randomUUID(), tableId, waiterId);
+
+        assertEquals(waiterId, response.assignedWaiterId());
+    }
+
+    @Test
+    void waiterAssignmentRejectsWaiterFromAnotherRestaurant() {
+        UUID tableId = UUID.randomUUID();
+        UUID waiterId = UUID.randomUUID();
+        RestaurantTable table = new RestaurantTable();
+        table.setId(tableId);
+        table.setRestaurantId("restaurant-a");
+        when(repository.findByIdAndRestaurantId(tableId, "restaurant-a")).thenReturn(Optional.of(table));
+        when(userRepository.findByIdAndRestaurantId(waiterId, "restaurant-a")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.assignWaiter("restaurant-a", UUID.randomUUID(), tableId, waiterId));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(repository, never()).saveAndFlush(any(RestaurantTable.class));
     }
 }

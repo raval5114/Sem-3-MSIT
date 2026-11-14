@@ -66,7 +66,7 @@ router.post("/", async (req, res) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const filters = {};
+    const filters = { restaurantId: req.accessContext.restaurantId };
 
     if (
       req.query.isActive !==
@@ -115,7 +115,8 @@ router.get("/:id", async (req, res) => {
   try {
     const allergen =
       await getAllergenById(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!allergen) {
@@ -167,7 +168,8 @@ router.put("/:id", async (req, res) => {
     const allergen =
       await updateAllergen(
         req.params.id,
-        req.body
+        req.body,
+        req.accessContext.restaurantId
       );
 
     if (!allergen) {
@@ -214,7 +216,8 @@ router.delete("/:id", async (req, res) => {
   try {
     const allergen =
       await deleteAllergen(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!allergen) {

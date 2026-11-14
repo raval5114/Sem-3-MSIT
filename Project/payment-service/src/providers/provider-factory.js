@@ -10,10 +10,13 @@ function getPaymentProvider(config = process.env) {
       webhookSecret: config.RAZORPAY_WEBHOOK_SECRET,
     });
   }
-  return new SandboxProvider({
-    keyId: config.SANDBOX_KEY_ID,
-    secret: config.SANDBOX_SECRET,
-  });
+  if (providerType === "sandbox") {
+    return new SandboxProvider({
+      keyId: config.SANDBOX_KEY_ID,
+      secret: config.SANDBOX_SECRET,
+    });
+  }
+  throw new Error(`Unsupported PAYMENT_PROVIDER: ${providerType}`);
 }
 
 module.exports = { getPaymentProvider };

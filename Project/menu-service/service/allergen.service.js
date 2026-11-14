@@ -20,14 +20,16 @@ const getAllergens = async (filters = {}) => {
   });
 };
 
-const getAllergenById = async (id) => {
-  return await Allergen.findById(id);
+const getAllergenById = async (id, restaurantId) => {
+  return restaurantId
+    ? await Allergen.findOne({ _id: id, restaurantId })
+    : await Allergen.findById(id);
 };
 
-const updateAllergen = async (id, data) => {
+const updateAllergen = async (id, data, restaurantId) => {
   try {
-    return await Allergen.findByIdAndUpdate(
-      id,
+    return await Allergen.findOneAndUpdate(
+      restaurantId ? { _id: id, restaurantId } : { _id: id },
       data,
       {
         new: true,
@@ -45,8 +47,10 @@ const updateAllergen = async (id, data) => {
   }
 };
 
-const deleteAllergen = async (id) => {
-  return await Allergen.findByIdAndDelete(id);
+const deleteAllergen = async (id, restaurantId) => {
+  return await Allergen.findOneAndDelete(
+    restaurantId ? { _id: id, restaurantId } : { _id: id }
+  );
 };
 
 module.exports = {

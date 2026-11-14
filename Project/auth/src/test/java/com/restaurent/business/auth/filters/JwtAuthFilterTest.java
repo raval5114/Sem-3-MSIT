@@ -115,6 +115,62 @@ class JwtAuthFilterTest {
         }
     }
 
+    @Test
+    void inactiveStaffTokenIsForbiddenAndDoesNotReachProtectedHandler() throws ServletException, IOException {
+        UUID userId = UUID.randomUUID();
+        JwtService jwtService = new JwtService(new KeyConfig(keyDirectory.resolve("inactive-staff").toString()).rsaKey());
+        UserInfo user = UserInfo.builder()
+                .id(userId)
+                .email("staff@dineflow.test")
+                .restaurantId("restaurant-suspended")
+                .role(Role.builder().name("RESTAURANT_ADMIN").build())
+                .isActive(true)
+                .build();
+        UserInfoService userInfoService = mock(UserInfoService.class);
+        when(userInfoService.loadUserBySubject("u_" + userId))
+                .thenReturn(new UserInfoDetails(user, false));
+        JwtAuthFilter filter = filter(jwtService, userInfoService);
+        String token = jwtService.generateToken("u_" + userId, Map.of("email", "staff@dineflow.test"));
+        MockHttpServletRequest request = request("/auth/tables", token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean continued = new AtomicBoolean(false);
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> continued.set(true));
+
+        assertEquals(403, response.getStatus());
+        assertFalse(continued.get());
+    }
+
+    @Test
+    void inactiveStaffCanReachOnlyAccessPolicyEndpointForStructuredDenial() throws ServletException, IOException {
+        UUID userId = UUID.randomUUID();
+        JwtService jwtService = new JwtService(new KeyConfig(keyDirectory.resolve("inactive-access").toString()).rsaKey());
+        UserInfo user = UserInfo.builder()
+                .id(userId)
+                .email("staff@dineflow.test")
+                .restaurantId("restaurant-suspended")
+                .role(Role.builder().name("RESTAURANT_ADMIN").build())
+                .isActive(true)
+                .build();
+        UserInfoService userInfoService = mock(UserInfoService.class);
+        when(userInfoService.loadUserBySubject("u_" + userId))
+                .thenReturn(new UserInfoDetails(user, false));
+        JwtAuthFilter filter = filter(jwtService, userInfoService);
+        String token = jwtService.generateToken("u_" + userId, Map.of("email", "staff@dineflow.test"));
+        MockHttpServletRequest request = request("/auth/access/authorize", token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean continued = new AtomicBoolean(false);
+
+        try {
+            filter.doFilter(request, response, (servletRequest, servletResponse) -> continued.set(true));
+
+            assertTrue(continued.get());
+            assertTrue(SecurityContextHolder.getContext().getAuthentication().isAuthenticated());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
     private JwtAuthFilter filter(JwtService jwtService) {
         return filter(jwtService, mock(UserInfoService.class));
     }

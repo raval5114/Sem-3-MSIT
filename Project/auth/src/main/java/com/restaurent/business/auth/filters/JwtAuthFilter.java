@@ -23,8 +23,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final Set<String> PUBLIC_AUTH_PATHS = Set.of(
             "/auth/login",
-            "/auth/addNewUser",
             "/auth/generateToken",
+            "/auth/restaurant-registrations",
             "/auth/table-session/init",
             "/auth/welcome",
             "/.well-known/jwks.json",
@@ -70,6 +70,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             if (jwtService.validateToken(token, userDetails)) {
+                boolean accessPolicyRequest = request.getServletPath().startsWith("/auth/access/");
+                if (!userDetails.isEnabled() && !accessPolicyRequest) {
+                    SecurityContextHolder.clearContext();
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                            "Staff account or restaurant is inactive");
+                    return;
+                }
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities()
                 );

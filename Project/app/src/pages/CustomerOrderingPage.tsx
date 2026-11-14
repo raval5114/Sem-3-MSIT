@@ -10,6 +10,42 @@ import {
   type PaymentIntent,
 } from '../services/customerOrderingService';
 import '../customer-order.css';
+import './payment-checkout.css';
+
+interface RazorpaySuccessResponse { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }
+interface RazorpayFailureResponse { error?: { description?: string } }
+interface RazorpayCheckoutOptions {
+  key: string; amount: number; currency: string; name: string; description: string; order_id: string;
+  theme: { color: string };
+  modal: { ondismiss: () => void };
+  handler: (response: RazorpaySuccessResponse) => void;
+}
+interface RazorpayCheckoutInstance {
+  open: () => void;
+  on: (event: 'payment.failed', handler: (response: RazorpayFailureResponse) => void) => void;
+}
+declare global {
+  interface Window { Razorpay?: new (options: RazorpayCheckoutOptions) => RazorpayCheckoutInstance }
+}
+
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-razorpay-checkout]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Could not load the secure payment window.')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.dataset.razorpayCheckout = 'true';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Could not load the secure payment window.'));
+    document.body.appendChild(script);
+  });
+}
 
 interface TableSessionInfo { restaurantId: string; tableId: string; tableNumber: number; tableSessionId: string; expiresAt: string }
 interface CartLine { key: string; product: CustomerProduct; quantity: number; line: CustomerOrderLine; unitPrice: number; optionsLabel: string }
@@ -41,7 +77,9 @@ export default function CustomerOrderingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<CustomerProduct | null>(null);
   const [placing, setPlacing] = useState(false);
   const [order, setOrder] = useState<PlacedOrder | null>(null);
@@ -110,18 +148,17 @@ export default function CustomerOrderingPage() {
     finally { setPlacing(false); }
   };
 
-  const completeOnlinePayment = async () => {
+  const confirmOnlinePayment = async (providerPaymentId: string, providerOrderId: string, signature: string) => {
     if (!onlineIntent) return;
-    setProcessingPayment(true); setError('');
+    setProcessingPayment(true);
+    setError('');
     try {
-      const mockPaymentId = `pay_sbx_${Math.random().toString(36).substring(2, 10)}`;
-      const mockSignature = `sbx_sig_${Math.random().toString(36).substring(2, 12)}`;
       const verified = await customerOrderingService.verifyPayment({
         orderId: onlineIntent.order.id,
         paymentId: onlineIntent.intent.paymentId,
-        providerPaymentId: mockPaymentId,
-        providerOrderId: onlineIntent.intent.providerOrderId,
-        signature: mockSignature,
+        providerPaymentId,
+        providerOrderId,
+        signature,
       });
       setOrder({
         ...onlineIntent.order,
@@ -133,6 +170,42 @@ export default function CustomerOrderingPage() {
     } catch (cause) {
       setError(errorText(cause));
     } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const completeOnlinePayment = async () => {
+    if (!onlineIntent) return;
+    if (onlineIntent.intent.provider !== 'RAZORPAY') {
+      const demoPaymentId = `pay_sbx_${Math.random().toString(36).substring(2, 10)}`;
+      const demoSignature = `sbx_sig_${Math.random().toString(36).substring(2, 12)}`;
+      await confirmOnlinePayment(demoPaymentId, onlineIntent.intent.providerOrderId, demoSignature);
+      return;
+    }
+
+    setProcessingPayment(true);
+    setError('');
+    try {
+      await loadRazorpayCheckout();
+      if (!window.Razorpay) throw new Error('The payment gateway did not initialize. Please try again.');
+      const checkout = new window.Razorpay({
+        key: onlineIntent.intent.keyId,
+        amount: Math.round(onlineIntent.intent.amount * 100),
+        currency: onlineIntent.intent.currency,
+        name: 'DineFlow',
+        description: `Table order #${onlineIntent.order.id.slice(0, 8).toUpperCase()}`,
+        order_id: onlineIntent.intent.providerOrderId,
+        theme: { color: '#43825a' },
+        modal: { ondismiss: () => setProcessingPayment(false) },
+        handler: (result) => { void confirmOnlinePayment(result.razorpay_payment_id, result.razorpay_order_id, result.razorpay_signature); },
+      });
+      checkout.on('payment.failed', (result) => {
+        setError(result.error?.description || 'Payment could not be completed. Choose another method or try again.');
+        setProcessingPayment(false);
+      });
+      checkout.open();
+    } catch (cause) {
+      setError(errorText(cause));
       setProcessingPayment(false);
     }
   };
@@ -236,23 +309,29 @@ export default function CustomerOrderingPage() {
   const selectedCategory = visibleCategories.find((category) => category._id === activeCategory) ?? visibleCategories[0];
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const cartTotal = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  const query = searchQuery.trim().toLowerCase();
+  const menuProducts = (query ? visibleCategories.flatMap((category) => category.products) : selectedCategory?.products ?? [])
+    .filter((product) => !query || `${product.name} ${product.description ?? ''} ${(product.dietaryTags ?? []).join(' ')}`.toLowerCase().includes(query));
 
   return <main className="df-order-page">
     <header className="df-order-header"><Link to={`/r/${restaurantId}/t/${tableId}`} className="df-order-brand">d<span>.</span></Link><div><span>TABLE {session.tableNumber}</span><small>QR ORDERING</small></div><span className="df-order-session-dot">Session active</span></header>
     <div className="df-order-layout">
-      <section className="df-menu-column"><div className="df-menu-welcome"><p className="df-order-eyebrow">MADE FRESH FOR YOU</p><h1>Explore the menu</h1><p>Choose your favorites and we’ll prepare them for your table.</p></div>
+      <section className="df-menu-column"><div className="df-menu-welcome"><div className="df-menu-welcome-copy"><p className="df-order-eyebrow">MADE FRESH FOR YOU</p><h1>What sounds good?</h1><p>Pick a favorite. We’ll bring it right to your table.</p></div><span className="df-menu-hero-art" aria-hidden="true">✳</span></div>
         {error && <div className="df-order-error" role="alert">{error}</div>}
         {loading ? <div className="df-order-empty">Loading the menu…</div> : visibleCategories.length === 0 ? <div className="df-order-empty">The menu is currently unavailable. Please ask staff for help.</div> : <>
-          <nav className="df-menu-categories" aria-label="Menu categories">{visibleCategories.map((category) => <button key={category._id} className={selectedCategory?._id === category._id ? 'active' : ''} onClick={() => setActiveCategory(category._id)}>{category.name}</button>)}</nav>
-          <div className="df-customer-product-list">{selectedCategory?.products.map((product) => <article className="df-customer-product" key={product._id}>
-            {product.imageUrl && <img src={product.imageUrl} alt="" loading="lazy" />}
-            <div className="df-customer-product-copy"><div className="df-customer-product-title"><h2>{product.name}</h2><strong>{money(product.basePrice)}</strong></div><p>{product.description || 'Prepared fresh by our kitchen.'}</p><div className="df-customer-product-meta">{product.preparationTimeMinutes ? <span>{product.preparationTimeMinutes} min</span> : null}{product.dietaryTags?.map((tag) => <span key={tag}>{tag}</span>)}</div>
-              <button className="df-order-add" onClick={() => (product.variants.length || product.modifierGroups.length) ? setEditingProduct(product) : addLine(product, [], [])}>＋ Add to order</button>
+          <label className="df-menu-search"><span aria-hidden="true">⌕</span><input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search dishes, ingredients…" aria-label="Search menu" />{searchQuery && <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search">×</button>}</label>
+          {!query && <nav className="df-menu-categories" aria-label="Menu categories">{visibleCategories.map((category) => <button key={category._id} className={selectedCategory?._id === category._id ? 'active' : ''} onClick={() => setActiveCategory(category._id)}>{category.name}<small>{category.products.length}</small></button>)}</nav>}
+          {query && <p className="df-search-results">{menuProducts.length} {menuProducts.length === 1 ? 'dish' : 'dishes'} found</p>}
+          {menuProducts.length ? <div className="df-customer-product-list">{menuProducts.map((product) => <article className="df-customer-product" key={product._id}>
+            {product.imageUrl ? <img src={product.imageUrl} alt={product.name} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} /> : <div className="df-customer-product-placeholder" aria-hidden="true">✳</div>}
+            <div className="df-customer-product-copy"><div className="df-customer-product-title"><h2>{product.name}</h2><strong>{money(product.basePrice)}</strong></div><p>{product.description || 'Prepared fresh by our kitchen.'}</p><div className="df-customer-product-meta">{product.preparationTimeMinutes ? <span>◷ {product.preparationTimeMinutes} min</span> : null}{product.dietaryTags?.map((tag) => <span key={tag}>{tag}</span>)}</div>
+              <div className="df-product-order-actions">{cart.some((line) => line.product._id === product._id) && <small>{cart.filter((line) => line.product._id === product._id).reduce((sum, line) => sum + line.quantity, 0)} in your order</small>}<button className="df-order-add" onClick={() => (product.variants.length || product.modifierGroups.length) ? setEditingProduct(product) : addLine(product, [], [])}>{(product.variants.length || product.modifierGroups.length) ? '＋ Choose options' : '＋ Add'}</button></div>
             </div>
-          </article>)}</div>
+          </article>)}</div> : <div className="df-order-empty">{query ? 'No dishes match that search. Try another name or ingredient.' : 'There are no dishes in this category yet.'}</div>}
         </>}
       </section>
-      <aside className="df-cart-panel"><div className="df-cart-heading"><div><p className="df-order-eyebrow">YOUR SELECTION</p><h2>Your order <span>{itemCount}</span></h2></div></div>
+      {cartOpen && <button className="df-cart-backdrop" onClick={() => setCartOpen(false)} aria-label="Close your order" />}
+      <aside className={`df-cart-panel ${cartOpen ? 'mobile-open' : ''}`}><div className="df-cart-heading"><div><p className="df-order-eyebrow">YOUR SELECTION</p><h2>Your order <span>{itemCount}</span></h2></div><button className="df-cart-close" onClick={() => setCartOpen(false)} aria-label="Close your order">×</button></div>
         {cart.length === 0 ? <div className="df-cart-empty">Your cart is empty.<br />Add a menu item to get started.</div> : <>
           <div className="df-cart-lines">{cart.map((line) => <div className="df-cart-line" key={line.key}><div><strong>{line.product.name}</strong>{line.optionsLabel && <small>{line.optionsLabel}</small>}<b>{money(line.unitPrice * line.quantity)}</b></div><div className="df-quantity-control"><button aria-label={`Remove one ${line.product.name}`} onClick={() => changeQuantity(line.key, -1)}>−</button><span>{line.quantity}</span><button aria-label={`Add one ${line.product.name}`} disabled={line.quantity >= 99} onClick={() => changeQuantity(line.key, 1)}>＋</button></div></div>)}</div>
           <form className="df-cart-checkout" onSubmit={placeOrder}>
@@ -274,36 +353,33 @@ export default function CustomerOrderingPage() {
         </>}
       </aside>
     </div>
+    {!!itemCount && <button className="df-mobile-cart-bar" onClick={() => setCartOpen(true)}><span><strong>View your order</strong><small>{itemCount} {itemCount === 1 ? 'item' : 'items'}</small></span><b>{money(cartTotal)} <span>›</span></b></button>}
     {onlineIntent && (
       <div className="df-order-modal-backdrop" role="presentation">
-        <section className="df-order-modal" role="dialog" aria-modal="true" aria-labelledby="df-payment-title">
-          <div className="df-customize-heading">
-            <div>
-              <p className="df-order-eyebrow">SECURE CHECKOUT</p>
-              <h2 id="df-payment-title">Online Payment</h2>
-              <span>DineFlow Instant Gateway ({onlineIntent.intent.provider})</span>
-            </div>
-            <button className="df-modal-close" onClick={() => setOnlineIntent(null)} aria-label="Cancel payment">×</button>
+        <section className="df-order-modal df-payment-modal" role="dialog" aria-modal="true" aria-labelledby="df-payment-title">
+          <header className="df-payment-header">
+            <div className="df-payment-lock" aria-hidden="true">⌑</div>
+            <div className="df-payment-title-wrap"><p className="df-order-eyebrow">SECURE CHECKOUT</p><h2 id="df-payment-title">Complete your payment</h2><span>Choose a method in the secure payment window.</span></div>
+            <button className="df-modal-close" onClick={() => setOnlineIntent(null)} aria-label="Close payment">×</button>
+          </header>
+          <div className="df-payment-amount"><div><span>Order total</span><strong>#{onlineIntent.order.id.slice(0, 8).toUpperCase()}</strong></div><b>{money(onlineIntent.intent.amount)}</b></div>
+          <p className="df-payment-method-label">PAYMENT OPTIONS</p>
+          <div className="df-payment-options" aria-label="Payment methods available through the gateway">
+            <div><i className="df-method-icon upi-icon">⌁</i><span><strong>UPI</strong><small>Google Pay · PhonePe · Paytm</small></span></div>
+            <div><i className="df-method-icon card-icon">▤</i><span><strong>Credit & debit cards</strong><small>Visa · Mastercard · RuPay</small></span></div>
+            <div><i className="df-method-icon bank-icon">▥</i><span><strong>Net banking</strong><small>Supported banks</small></span></div>
+            <div><i className="df-method-icon wallet-icon">▣</i><span><strong>Wallets</strong><small>Available options</small></span></div>
           </div>
-          <div style={{ margin: '18px 0', padding: '16px', background: '#f7fbf7', border: '1px solid #cce0d0', borderRadius: '10px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px', color: '#4c594e' }}>
-              <span>Order Reference</span>
-              <strong>#{onlineIntent.order.id.slice(0, 8).toUpperCase()}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, color: '#3d8057' }}>
-              <span>Amount Payable</span>
-              <span>{money(onlineIntent.intent.amount)}</span>
-            </div>
-          </div>
-          <div style={{ fontSize: '10px', color: '#7a857b', marginBottom: '18px', lineHeight: 1.6 }}>
-            Supports UPI (Google Pay, PhonePe, Paytm), Visa/Mastercard/RuPay credit & debit cards, and net banking.
-          </div>
-          <div className="df-customize-actions">
+          {onlineIntent.intent.provider === 'SANDBOX' && <div className="df-payment-demo-note"><strong>Demo checkout</strong><span>No money will be charged. Configure Razorpay test credentials to use the hosted payment gateway.</span></div>}
+          <p className="df-payment-security"><span>✓</span>{onlineIntent.intent.provider === 'RAZORPAY' ? 'Card and payment details stay in Razorpay Checkout. DineFlow receives verified payment references only.' : 'Demo mode does not collect payment details or charge money.'}</p>
+          {error && <div className="df-order-error" role="alert">{error}</div>}
+          <div className="df-payment-actions">
             <button className="df-order-button secondary" onClick={() => setOnlineIntent(null)} disabled={processingPayment}>Cancel</button>
-            <button className="df-order-button" onClick={completeOnlinePayment} disabled={processingPayment}>
-              {processingPayment ? 'Confirming payment…' : `Pay ${money(onlineIntent.intent.amount)}`}
+            <button className="df-order-button" onClick={() => { void completeOnlinePayment(); }} disabled={processingPayment}>
+              {processingPayment ? 'Opening secure checkout…' : onlineIntent.intent.provider === 'SANDBOX' ? 'Continue demo payment' : `Continue to pay ${money(onlineIntent.intent.amount)}`}
             </button>
           </div>
+          <div className="df-payment-provider">Powered by {onlineIntent.intent.provider === 'RAZORPAY' ? 'Razorpay' : 'DineFlow Sandbox'} <span>·</span> {onlineIntent.intent.currency}</div>
         </section>
       </div>
     )}
@@ -324,10 +400,13 @@ function CustomizeDialog({ product, onCancel, onAdd }: { product: CustomerProduc
     const minimum = group.required ? Math.max(1, group.minimumSelection || 0) : (group.minimumSelection || 0);
     return count < minimum || count > group.maximumSelection;
   });
+  const selectedPrice = product.basePrice
+    + variants.reduce((sum, variant) => sum + variant.options.filter((option) => (selections[`variant:${variant._id}`] || []).includes(option.optionId)).reduce((groupSum, option) => groupSum + (option.priceAdjustment || 0), 0), 0)
+    + groups.reduce((sum, group) => sum + group.options.filter((option) => (selections[`modifier:${group._id}`] || []).includes(option.optionId)).reduce((groupSum, option) => groupSum + (option.priceAdjustment || 0), 0), 0);
   return <div className="df-order-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}><section className="df-order-modal" role="dialog" aria-modal="true" aria-labelledby="df-customize-title">
-    <div className="df-customize-heading"><div><p className="df-order-eyebrow">MAKE IT YOURS</p><h2 id="df-customize-title">{product.name}</h2><span>Starting at {money(product.basePrice)}</span></div><button className="df-modal-close" onClick={onCancel} aria-label="Close customizations">×</button></div>
+    <div className="df-customize-heading">{product.imageUrl && <img src={product.imageUrl} alt="" />}<div><p className="df-order-eyebrow">MAKE IT YOURS</p><h2 id="df-customize-title">{product.name}</h2><span>Starting at {money(product.basePrice)}</span></div><button className="df-modal-close" onClick={onCancel} aria-label="Close customizations">×</button></div>
     {variants.map((variant) => <fieldset className="df-option-group" key={variant._id}><legend>{variant.name} <small>Optional</small></legend>{variant.options.filter((option) => option.isAvailable !== false).map((option) => <label className="df-option-row" key={option.optionId}><input type="radio" name={`variant-${variant._id}`} checked={(selections[`variant:${variant._id}`] || [])[0] === option.optionId} onChange={() => toggle(`variant:${variant._id}`, option.optionId, true)} /><span>{option.name}</span><small>{option.priceAdjustment ? `+${money(option.priceAdjustment)}` : ''}</small></label>)}</fieldset>)}
     {groups.map((group: CustomerModifierGroup) => <fieldset className="df-option-group" key={group._id}><legend>{group.name} <small>{modifierPrompt(group)}</small></legend>{group.options.filter((option) => option.isAvailable !== false).map((option) => { const selected = (selections[`modifier:${group._id}`] || []).includes(option.optionId); const atLimit = (selections[`modifier:${group._id}`] || []).length >= group.maximumSelection; return <label className="df-option-row" key={option.optionId}><input type={group.maximumSelection === 1 ? 'radio' : 'checkbox'} name={`modifier-${group._id}`} checked={selected} disabled={group.maximumSelection > 1 && atLimit && !selected} onChange={() => toggle(`modifier:${group._id}`, option.optionId, group.maximumSelection === 1)} /><span>{option.name}</span><small>{option.priceAdjustment ? `+${money(option.priceAdjustment)}` : ''}</small></label>; })}</fieldset>)}
-    <div className="df-customize-actions"><button className="df-order-button secondary" onClick={onCancel}>Cancel</button><button className="df-order-button" disabled={modifierInvalid} onClick={() => onAdd(variants.flatMap((variant) => (selections[`variant:${variant._id}`] || []).map((optionId) => ({ variantId: variant._id, optionId }))), groups.flatMap((group) => { const optionIds = selections[`modifier:${group._id}`] || []; return optionIds.length ? [{ groupId: group._id, optionIds }] : []; }))}>Add item · {money(product.basePrice)}</button></div>
+    <div className="df-customize-actions"><button className="df-order-button secondary" onClick={onCancel}>Cancel</button><button className="df-order-button" disabled={modifierInvalid} onClick={() => onAdd(variants.flatMap((variant) => (selections[`variant:${variant._id}`] || []).map((optionId) => ({ variantId: variant._id, optionId }))), groups.flatMap((group) => { const optionIds = selections[`modifier:${group._id}`] || []; return optionIds.length ? [{ groupId: group._id, optionIds }] : []; }))}>Add item · {money(selectedPrice)}</button></div>
   </section></div>;
 }

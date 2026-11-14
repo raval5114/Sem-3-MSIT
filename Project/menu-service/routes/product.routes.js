@@ -84,12 +84,7 @@ router.post("/", async (req, res) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const filters = {};
-
-    if (req.query.restaurantId) {
-      filters.restaurantId =
-        req.query.restaurantId;
-    }
+    const filters = { restaurantId: req.accessContext.restaurantId };
 
     if (req.query.categoryId) {
       filters.categoryId =
@@ -152,7 +147,8 @@ router.get(
     try {
       const product =
         await getProductDetails(
-          req.params.id
+          req.params.id,
+          req.accessContext.restaurantId
         );
 
       if (!product) {
@@ -200,7 +196,8 @@ router.get(
     try {
       const variants =
         await getProductVariants(
-          req.params.id
+          req.params.id,
+          req.accessContext.restaurantId
         );
 
       if (variants === null) {
@@ -250,7 +247,8 @@ router.get(
     try {
       const modifierGroups =
         await getProductModifierGroups(
-          req.params.id
+          req.params.id,
+          req.accessContext.restaurantId
         );
 
       if (modifierGroups === null) {
@@ -298,7 +296,8 @@ router.get("/:id", async (req, res) => {
   try {
     const product =
       await getProductById(
-        req.params.id
+        req.params.id,
+        req.accessContext.restaurantId
       );
 
     if (!product) {
@@ -352,7 +351,8 @@ router.put("/:id", async (req, res) => {
     const product =
       await updateProduct(
         req.params.id,
-        req.body
+        req.body,
+        req.accessContext.restaurantId
       );
 
     if (!product) {
@@ -425,7 +425,8 @@ router.patch(
       const product =
         await updateAvailability(
           req.params.id,
-          req.body.isAvailable
+          req.body.isAvailable,
+          req.accessContext.restaurantId
         );
 
       if (!product) {
@@ -510,7 +511,8 @@ router.patch(
       const product =
         await updateStatus(
           req.params.id,
-          req.body.status
+          req.body.status,
+          req.accessContext.restaurantId
         );
 
       if (!product) {
@@ -560,7 +562,8 @@ router.delete(
     try {
       const product =
         await deleteProduct(
-          req.params.id
+          req.params.id,
+          req.accessContext.restaurantId
         );
 
       if (!product) {

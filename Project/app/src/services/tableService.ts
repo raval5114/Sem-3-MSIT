@@ -9,6 +9,7 @@ export interface RestaurantTable {
   seatingCapacity: number;
   section: string | null;
   displayName: string | null;
+  assignedWaiterId: string | null;
   status: TableStatus;
   createdAt: string;
   updatedAt: string;
@@ -46,6 +47,9 @@ export const tableService = {
   create: async (request: TableRequest): Promise<RestaurantTable> => (await authApi.post<RestaurantTable>('/tables', request)).data,
   update: async (tableId: string, request: TableRequest): Promise<RestaurantTable> => (await authApi.put<RestaurantTable>(`/tables/${tableId}`, request)).data,
   setStatus: async (tableId: string, status: TableStatus): Promise<RestaurantTable> => (await authApi.patch<RestaurantTable>(`/tables/${tableId}/status`, { status })).data,
+  assignWaiter: async (tableId: string, waiterId: string | null): Promise<RestaurantTable> =>
+    (await authApi.patch<RestaurantTable>(`/tables/${tableId}/assignment`, { waiterId })).data,
+  listMyAssignedTables: async (): Promise<RestaurantTable[]> => (await authApi.get<RestaurantTable[]>('/waiter/tables')).data,
   issueQr: async (tableId: string): Promise<TableQrResponse> => (await authApi.post<TableQrResponse>(`/tables/${tableId}/qr/rotate`)).data,
   initializeSession: async (tableId: string, qrToken: string): Promise<TableSessionResponse> =>
     (await authApi.post<TableSessionResponse>('/table-session/init', { tableId, qrToken })).data,

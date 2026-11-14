@@ -11,18 +11,24 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.restaurent.business.auth.entities.RestaurantTable;
 import com.restaurent.business.auth.entities.TableStatus;
+import com.restaurent.business.auth.entities.UserInfo;
 import com.restaurent.business.auth.entities.dto.CreateTableRequest;
 import com.restaurent.business.auth.entities.dto.TableResponse;
 import com.restaurent.business.auth.entities.dto.UpdateTableRequest;
 import com.restaurent.business.auth.repos.RestaurantTableRepository;
+import com.restaurent.business.auth.repos.UserDetailsRepository;
 
 @Service
 public class RestaurantTableService {
 
     private final RestaurantTableRepository tableRepository;
+    private final UserDetailsRepository userRepository;
 
-    public RestaurantTableService(RestaurantTableRepository tableRepository) {
+    public RestaurantTableService(
+            RestaurantTableRepository tableRepository,
+            UserDetailsRepository userRepository) {
         this.tableRepository = tableRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -77,6 +83,33 @@ public class RestaurantTableService {
         table.setStatus(status);
         table.setUpdatedBy(staffId);
         return save(table);
+    }
+
+    @Transactional
+    public TableResponse assignWaiter(String restaurantId, UUID staffId, UUID tableId, UUID waiterId) {
+        RestaurantTable table = findOwnedTable(restaurantId, tableId);
+        if (waiterId != null) {
+            UserInfo waiter = userRepository.findByIdAndRestaurantId(waiterId, restaurantId)
+                    .filter(UserInfo::isActive)
+                    .filter(user -> user.getRole() != null && "WAITER".equals(user.getRole().getName()))
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "An active waiter from this restaurant is required"));
+            table.setAssignedWaiterId(waiter.getId());
+        } else {
+            table.setAssignedWaiterId(null);
+        }
+        table.setUpdatedBy(staffId);
+        return save(table);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TableResponse> assignedToWaiter(String restaurantId, UUID waiterId) {
+        requireRestaurant(restaurantId);
+        return tableRepository.findAllByRestaurantIdAndAssignedWaiterIdOrderByTableNumberAsc(restaurantId, waiterId)
+                .stream()
+                .filter(table -> table.getStatus() == TableStatus.ACTIVE)
+                .map(TableResponse::from)
+                .toList();
     }
 
     private TableResponse save(RestaurantTable table) {
